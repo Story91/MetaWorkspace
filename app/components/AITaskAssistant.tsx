@@ -178,24 +178,7 @@ function MessageContent({ content }: { content: string; isUser: boolean }) {
 
 export function AITaskAssistant() {
   const { notification, userProfile, fetchUserProfile, context } = useMiniKitFeatures();
-  
-  // Load messages from localStorage on component mount
-  const loadStoredMessages = (): ChatMessage[] => {
-    if (typeof window === 'undefined') return defaultMessages;
-    try {
-      const stored = localStorage.getItem('metaworkspace-chat-messages');
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        return parsed.map((msg: { id: string; type: string; content: string; timestamp: string; avatar?: string }) => ({
-          ...msg,
-          timestamp: new Date(msg.timestamp)
-        }));
-      }
-    } catch (error) {
-      console.error('Failed to load stored messages:', error);
-    }
-    return defaultMessages;
-  };
+  const [isClientMounted, setIsClientMounted] = useState(false);
 
   const getWelcomeMessage = () => {
     const userName = userProfile ? 
@@ -206,17 +189,17 @@ export function AITaskAssistant() {
     return `Hi ${userName}! I'm your Base + Farcaster Mini Apps Expert. I have access to official documentation and specialize in:\n\n• Base Manifest (/.well-known/farcaster.json)\n• @farcaster/miniapp-sdk methods\n• Quick Auth & wallet signatures\n• Base App discovery & embeds\n\nHow can I help you build your Mini App?`;
   };
 
-  const defaultMessages: ChatMessage[] = [
+  const getDefaultMessages = (): ChatMessage[] => [
     {
-      id: '1',
+      id: 'default-welcome-message',
       type: 'ai',
-      content: getWelcomeMessage(),
-      timestamp: new Date(),
+      content: `Hi Developer! I'm your Base + Farcaster Mini Apps Expert. I have access to official documentation and specialize in:\n\n• Base Manifest (/.well-known/farcaster.json)\n• @farcaster/miniapp-sdk methods\n• Quick Auth & wallet signatures\n• Base App discovery & embeds\n\nHow can I help you build your Mini App?`,
+      timestamp: new Date('2024-12-20T12:00:00Z'),
       avatar: '🤖'
     }
   ];
 
-  const [messages, setMessages] = useState<ChatMessage[]>(loadStoredMessages);
+  const [messages, setMessages] = useState<ChatMessage[]>(getDefaultMessages);
   
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -243,16 +226,34 @@ export function AITaskAssistant() {
     }
   }, []);
 
-  // Save messages to localStorage whenever messages change
+  // Client-side mounting effect to load stored messages
   useEffect(() => {
-    if (typeof window !== 'undefined' && messages.length > 0) {
+    setIsClientMounted(true);
+    try {
+      const stored = localStorage.getItem('metaworkspace-chat-messages');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        const storedMessages = parsed.map((msg: { id: string; type: string; content: string; timestamp: string; avatar?: string }) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+        setMessages(storedMessages);
+      }
+    } catch (error) {
+      console.error('Failed to load stored messages:', error);
+    }
+  }, []);
+
+  // Save messages to localStorage whenever messages change (only after client mount)
+  useEffect(() => {
+    if (isClientMounted && messages.length > 0) {
       try {
         localStorage.setItem('metaworkspace-chat-messages', JSON.stringify(messages));
       } catch (error) {
         console.error('Failed to save messages:', error);
       }
     }
-  }, [messages]);
+  }, [messages, isClientMounted]);
 
   // Auto-scroll to latest message when messages change
   useEffect(() => {
@@ -306,14 +307,14 @@ export function AITaskAssistant() {
 
   const handleSendMessage = useCallback(async (message?: string) => {
     const messageToSend = message || inputValue.trim();
-    if (!messageToSend || isProcessing) return;
+    if (!messageToSend || isProcessing || !isClientMounted) return;
 
     setIsProcessing(true);
     setInputValue('');
 
-    // Add user message
+    // Add user message with stable ID generation
     const userMessage: ChatMessage = {
-      id: Date.now().toString(),
+      id: `user-${messages.length + 1}-${Math.random().toString(36).substring(2, 15)}`,
       type: 'user',
       content: messageToSend,
       timestamp: new Date()
@@ -333,7 +334,7 @@ export function AITaskAssistant() {
     try {
       const aiResponseContent = await callRealAI(messageToSend);
       const aiResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: `ai-${messages.length + 2}-${Math.random().toString(36).substring(2, 15)}`,
         type: 'ai',
         content: aiResponseContent,
         timestamp: new Date()
@@ -343,7 +344,7 @@ export function AITaskAssistant() {
     } catch (error) {
       console.error('Failed to get AI response:', error);
       const errorResponse: ChatMessage = {
-        id: (Date.now() + 1).toString(),
+        id: `ai-error-${messages.length + 2}-${Math.random().toString(36).substring(2, 15)}`,
         type: 'ai',
         content: '❌ Sorry, I encountered an error processing your request. Please try again.',
         timestamp: new Date()
@@ -363,7 +364,7 @@ export function AITaskAssistant() {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [inputValue, isProcessing, callRealAI, notification]);
+  }, [inputValue, isProcessing, callRealAI, notification, isClientMounted, messages.length]);
 
   const handleQuickAction = useCallback(async (action: string, text: string) => {
     await handleSendMessage(text);
@@ -415,8 +416,8 @@ export function AITaskAssistant() {
               key={action.id}
               variant="outline"
               size="sm"
-              onClick={() => handleQuickAction(action.action, action.text)}
-              disabled={isProcessing}
+                          onClick={() => handleQuickAction(action.action, action.text)}
+            disabled={isProcessing || !isClientMounted}
               className="text-left justify-start border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 py-1 px-2 h-8"
             >
               <span className="mr-1 text-xs">{action.icon}</span>
@@ -434,14 +435,14 @@ export function AITaskAssistant() {
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
             placeholder="Enter command for AI assistant..."
-            disabled={isProcessing}
+            disabled={isProcessing || !isClientMounted}
             className="flex-1 neu-input text-sm font-mono border-green-500/30 focus:border-green-500"
           />
           <Button
             variant="primary"
             size="sm"
             onClick={() => handleSendMessage()}
-            disabled={!inputValue.trim() || isProcessing}
+            disabled={!inputValue.trim() || isProcessing || !isClientMounted}
             className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
             icon={isProcessing ? 
               <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> :

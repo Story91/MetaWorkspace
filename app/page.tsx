@@ -29,13 +29,8 @@ export default function App() {
   const [frameAdded, setFrameAdded] = useState(false);
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [activeTab, setActiveTab] = useState("home");
-  const [isDarkMode, setIsDarkMode] = useState(() => {
-    if (typeof window !== 'undefined') {
-      const saved = localStorage.getItem('metaworkspace-dark-mode');
-      return saved ? JSON.parse(saved) : false;
-    }
-    return false;
-  });
+  const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isClientMounted, setIsClientMounted] = useState(false);
 
   // Available MiniKit Hooks
   const addFrame = useAddFrame();
@@ -49,8 +44,19 @@ export default function App() {
     }
   }, [setFrameReady, isFrameReady]);
 
+  // Client-side mounting effect to avoid hydration mismatch
+  useEffect(() => {
+    setIsClientMounted(true);
+    const saved = localStorage.getItem('metaworkspace-dark-mode');
+    if (saved) {
+      setIsDarkMode(JSON.parse(saved));
+    }
+  }, []);
+
   // Dark mode toggle effect
   useEffect(() => {
+    if (!isClientMounted) return;
+    
     if (isDarkMode) {
       document.documentElement.classList.add('dark');
       document.body.classList.add('dark');
@@ -59,10 +65,8 @@ export default function App() {
       document.body.classList.remove('dark');
     }
     // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('metaworkspace-dark-mode', JSON.stringify(isDarkMode));
-    }
-  }, [isDarkMode]);
+    localStorage.setItem('metaworkspace-dark-mode', JSON.stringify(isDarkMode));
+  }, [isDarkMode, isClientMounted]);
 
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode((prev: boolean) => !prev);

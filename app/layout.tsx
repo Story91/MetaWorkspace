@@ -21,18 +21,17 @@ export async function generateMetadata(): Promise<Metadata> {
       images: [process.env.NEXT_PUBLIC_APP_HERO_IMAGE || ""],
     },
     other: {
-      "fc:miniapp": JSON.stringify({
-        version: "1",
+      "fc:frame": JSON.stringify({
+        version: "next",
         imageUrl: process.env.NEXT_PUBLIC_APP_HERO_IMAGE,
         button: {
-          title: "Launch MetaWorkspace AI",
+          title: `Launch ${process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME}`,
           action: {
             type: "launch_frame",
-            name: "MetaWorkspace AI",
+            name: process.env.NEXT_PUBLIC_ONCHAINKIT_PROJECT_NAME,
             url: URL,
-            splashImageUrl: process.env.NEXT_PUBLIC_SPLASH_IMAGE,
-            splashBackgroundColor:
-              process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || "#0052FF",
+            splashImageUrl: process.env.NEXT_PUBLIC_APP_SPLASH_IMAGE,
+            splashBackgroundColor: process.env.NEXT_PUBLIC_SPLASH_BACKGROUND_COLOR || "#0052FF",
           },
         },
       }),

@@ -293,50 +293,50 @@ export function AboutGuide() {
           <div>
             <GuideSection
               icon="🏛️"
-              title="Room Manager - pokoje robocze Farcaster"
+              title="Room Manager - Farcaster Workspace Rooms"
               steps={[
-                "Przejdź do zakładki '🏛️ Rooms'",
-                "Kliknij 'Create New Room' aby utworzyć przestrzeń roboczą",
-                "Ustaw nazwę pokoju i czy ma być publiczny/prywatny",
-                "Dodaj usernames Farcaster do whitelist",
-                "Skonfiguruj ustawienia nagrywania (voice/video NFT)",
-                "Pokój będzie zapisany na blockchain z kontrolą dostępu"
+                "Go to the '🏛️ Rooms' tab",
+                "Click 'Create New Room' to create a workspace",
+                "Set room name and whether it should be public/private",
+                "Add Farcaster usernames to the whitelist",
+                "Configure recording settings (voice/video NFT)",
+                "Room will be saved on blockchain with access control"
               ]}
               tips={[
-                "Tylko osoby z whitelist mogą dołączyć do prywatnych pokoi",
-                "Każdy pokój ma swoje unikalne NFT nagrań",
-                "Możesz zarządzać uprawnieniami w czasie rzeczywistym",
-                "Pokoje publiczne są otwarte dla wszystkich użytkowników Farcaster"
+                "Only whitelisted users can join private rooms",
+                "Each room has its unique recording NFTs",
+                "You can manage permissions in real-time",
+                "Public rooms are open to all Farcaster users"
               ]}
             />
             
             <GuideSection
               icon="⚙️"
-              title="Zarządzanie dostępem i uprawnieniami"
+              title="Access Control and Permissions Management"
               steps={[
-                "W szczegółach pokoju kliknij 'Manage Whitelist'",
-                "Dodaj nowych użytkowników wpisując ich Farcaster username",
-                "Usuń użytkowników klikając przycisk 'Remove'",
-                "Zmień ustawienia pokoju (max czas nagrania, funkcje)",
-                "Wszystkie zmiany są zapisywane na blockchain"
+                "In room details click 'Manage Whitelist'",
+                "Add new users by entering their Farcaster username",
+                "Remove users by clicking the 'Remove' button",
+                "Change room settings (max recording time, features)",
+                "All changes are saved on blockchain"
               ]}
               tips={[
-                "Zmiany whitelist są natychmiastowe",
-                "Możesz nadawać różne uprawnienia różnym użytkownikom",
-                "Historia zmian jest zapisana na blockchain",
-                "Właściciel pokoju ma pełną kontrolę nad ustawieniami"
+                "Whitelist changes are immediate",
+                "You can grant different permissions to different users",
+                "Change history is recorded on blockchain",
+                "Room owner has full control over settings"
               ]}
             />
           </div>
         );
 
       default:
-        return <div>Wybierz sekcję aby zobaczyć przewodnik</div>;
+        return <div>Select a section to view the guide</div>;
     }
   };
 
   return (
-    <Card title="📖 MetaWorkspace - Kompletny przewodnik użytkownika">
+    <Card title="📖 MetaWorkspace - Complete User Guide">
       {/* Section Navigation */}
       <div className="grid grid-cols-2 gap-2 mb-6">
         {sections.map((section) => (
@@ -364,10 +364,10 @@ export function AboutGuide() {
 
       {/* Footer */}
       <div className="mt-8 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg">
-        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">🚀 MetaWorkspace - Przyszłość pracy</h4>
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-2">🚀 MetaWorkspace - The Future of Work</h4>
         <p className="text-sm text-gray-600 dark:text-gray-400">
-          Pierwszy na świecie AI-powered, blockchain-verified, socially-viral workspace platform. 
-          Twoja praca, Twoje dane, Twoja kontrola - wszystko w jednej aplikacji.
+          World&apos;s first AI-powered, blockchain-verified, socially-viral workspace platform. 
+          Your work, your data, your control - everything in one application.
         </p>
         <div className="mt-3 flex flex-wrap gap-2 text-xs">
           <span className="px-2 py-1 bg-blue-100 dark:bg-blue-900/50 text-blue-800 dark:text-blue-200 rounded">🤖 AI Assistant</span>

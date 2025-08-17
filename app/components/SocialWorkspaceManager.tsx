@@ -36,11 +36,13 @@ export function SocialWorkspaceManager() {
     shareURL,
     signMessage,
     notification,
+    composeCast,
     isAvailable
   } = useMiniKitFeatures();
   
   const [teamMembers] = useState(12);
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
+  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [signedMessage, setSignedMessage] = useState("");
 
   const handleGenerateTeamQR = useCallback(async () => {
@@ -52,6 +54,7 @@ export function SocialWorkspaceManager() {
         inviter: (userProfile as { username?: string })?.username || "anonymous"
       });
       console.log("Team QR generated:", qrData);
+      setQrCodeData(qrData); // Save QR data to state
       
       await notification({
         title: "📱 QR Code Generated!",
@@ -81,23 +84,90 @@ export function SocialWorkspaceManager() {
     }
   }, [signMessage, userProfile, notification]);
 
+  const handleShareOnFarcaster = useCallback(async () => {
+    try {
+      const userName = (userProfile as { username?: string; displayName?: string })?.username || 
+                      (userProfile as { username?: string; displayName?: string })?.displayName || 
+                      'Someone';
+      
+      const shareText = `🚀 ${userName} invited you to join MetaWorkspace AI!
+      
+Decentralized workspace with:
+• AI-powered task management
+• Blockchain-verified work NFTs  
+• Farcaster team collaboration
+• Voice & video meeting records
+
+Join the future of work! 🤖⛓️`;
+
+      const embeds = qrCodeData 
+        ? [window.location.href, qrCodeData] as [string, string]
+        : [window.location.href] as [string];
+
+      composeCast({
+        text: shareText,
+        embeds: embeds
+      });
+
+      await notification({
+        title: "📱 Shared on Farcaster!",
+        body: "Workspace invitation posted to your feed"
+      });
+
+    } catch (error) {
+      console.error('Farcaster share failed:', error);
+      await notification({
+        title: "❌ Share Failed",
+        body: "Could not post to Farcaster. Please try again."
+      });
+    }
+  }, [composeCast, userProfile, qrCodeData, notification]);
+
   const handleShareWorkspace = useCallback(async () => {
     try {
-      const shareData = {
-        url: window.location.href,
-        title: "🚀 Join my MetaWorkspace AI team!",
-        text: "Revolutionary AI-powered decentralized workspace for team collaboration"
-      };
-      await shareURL(shareData);
-      
-      await notification({
-        title: "📤 Workspace Shared!",
-        body: "Team invitation sent successfully"
+      // First try Farcaster sharing (better for viral growth)
+      const userName = (userProfile as { username?: string; displayName?: string })?.username || 
+                      (userProfile as { username?: string; displayName?: string })?.displayName || 
+                      'Someone';
+
+      composeCast({
+        text: `Just joined MetaWorkspace AI! 🚀
+
+AI-powered workspace for the future:
+• Blockchain-verified productivity 
+• Decentralized team collaboration
+• Voice NFTs & meeting records
+
+Join ${userName} and build the future of work! 🤖⛓️`,
+        embeds: [window.location.href] as [string]
       });
+
+      await notification({
+        title: "📱 Shared on Farcaster!",
+        body: "Posted your workspace invitation"
+      });
+
     } catch (error) {
-      console.error("Sharing failed:", error);
+      console.error("Farcaster sharing failed, trying fallback:", error);
+      
+      // Fallback to native sharing
+      try {
+        const shareData = {
+          url: window.location.href,
+          title: "🚀 Join my MetaWorkspace AI team!",
+          text: "Revolutionary AI-powered decentralized workspace for team collaboration"
+        };
+        await shareURL(shareData);
+        
+        await notification({
+          title: "📤 Workspace Shared!",
+          body: "Team invitation sent successfully"
+        });
+      } catch (fallbackError) {
+        console.error("All sharing methods failed:", fallbackError);
+      }
     }
-  }, [shareURL, notification]);
+  }, [composeCast, shareURL, notification, userProfile]);
 
   return (
     <Card title="🌐 Social Workspace Hub">
@@ -146,6 +216,59 @@ export function SocialWorkspaceManager() {
             </Button>
           </div>
         </div>
+
+        {/* QR Code Display */}
+        {qrCodeData && (
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
+            <div className="flex items-center space-x-2 mb-3">
+              <Icon name="check" className="text-blue-500" />
+              <span className="text-sm font-medium text-[var(--app-foreground)]">Team Invitation QR Code</span>
+            </div>
+            <div className="flex justify-center mb-3">
+              <img 
+                src={qrCodeData} 
+                alt="Team Invitation QR Code" 
+                className="w-48 h-48 border-2 border-gray-300 rounded-lg bg-white shadow-md"
+                onError={(e) => {
+                  // Fallback if image fails to load
+                  (e.target as HTMLImageElement).style.display = 'none';
+                  const parent = (e.target as HTMLImageElement).parentElement;
+                  if (parent) {
+                    parent.innerHTML = `
+                      <div class="w-48 h-48 border-2 border-gray-300 rounded-lg bg-white flex items-center justify-center">
+                        <div class="text-center text-gray-600">
+                          <div class="text-2xl mb-2">📱</div>
+                          <div class="text-xs">QR Code</div>
+                          <div class="text-xs">Generation Failed</div>
+                        </div>
+                      </div>
+                    `;
+                  }
+                }}
+              />
+            </div>
+            <div className="text-center space-y-2">
+              <div className="flex justify-center space-x-3">
+                <button
+                  onClick={() => navigator.clipboard.writeText(qrCodeData)}
+                  className="text-xs text-blue-600 hover:text-blue-800 underline"
+                >
+                  📋 Copy QR Data
+                </button>
+                <span className="text-xs text-gray-400">•</span>
+                <button
+                  onClick={handleShareOnFarcaster}
+                  className="text-xs text-purple-600 hover:text-purple-800 underline"
+                >
+                  📱 Share on Farcaster
+                </button>
+              </div>
+              <div className="text-xs text-gray-500">
+                Invite your team to join MetaWorkspace AI
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
           <div className="flex items-center space-x-2 mb-3">

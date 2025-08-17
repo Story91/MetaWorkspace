@@ -10,8 +10,17 @@ import AdvancedUIFeatures from "./AdvancedUIFeatures";
 import RoomManager from "./RoomManager";
 import AboutGuide from "./AboutGuide";
 
-export function MetaWorkspaceDashboard() {
-  const [activeTab, setActiveTab] = useState("dashboard");
+export function MetaWorkspaceDashboard({ 
+  activeTab: externalActiveTab,
+  setActiveTab: externalSetActiveTab 
+}: {
+  activeTab?: string;
+  setActiveTab?: (tab: string) => void;
+} = {}) {
+  const [internalActiveTab, setInternalActiveTab] = useState("dashboard");
+  
+  const activeTab = externalActiveTab || internalActiveTab;
+  const setActiveTab = externalSetActiveTab || setInternalActiveTab;
 
   const renderContent = () => {
     switch (activeTab) {

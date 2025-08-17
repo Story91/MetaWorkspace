@@ -73,13 +73,17 @@ export default function App() {
     console.log('isFrameReady:', isFrameReady);
     console.log('context:', context);
     
+    // Instead of using viewProfile (which opens external app),
+    // switch to social tab to show profile on our main page
+    setActiveTab("social");
+    
     try {
       viewProfile();
       console.log('viewProfile() called successfully');
     } catch (error) {
       console.error('Error calling viewProfile:', error);
     }
-  }, [viewProfile, isFrameReady, context]);
+  }, [viewProfile, isFrameReady, context, setActiveTab]);
 
   const handleAddFrame = useCallback(async () => {
     const frameAdded = await addFrame();
@@ -169,7 +173,7 @@ export default function App() {
         </header>
 
         <main className="flex-1">
-          <MetaWorkspaceDashboard />
+          <MetaWorkspaceDashboard activeTab={activeTab} setActiveTab={setActiveTab} />
         </main>
 
         <footer className="mt-4 pt-4 flex justify-center">

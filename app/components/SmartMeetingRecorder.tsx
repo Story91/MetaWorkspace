@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
@@ -32,34 +32,81 @@ export function SmartMeetingRecorder() {
   const { notification } = useMiniKitFeatures();
   
   const [isRecording, setIsRecording] = useState(false);
-  const [recordings] = useState([
-    {
-      id: 1,
-      title: "Team Planning Session",
-      duration: "45:32",
-      date: "2024-12-20",
-      summary: "Discussed Q1 roadmap, assigned tasks to team members, set deadlines for MVP features",
-      actionItems: [
-        "Alice: Design wireframes by Friday",
-        "Bob: Set up development environment",
-        "Carol: Research competitor analysis"
-      ],
-      participants: ["alice.eth", "bob.eth", "carol.eth"]
-    },
-    {
-      id: 2,
-      title: "Client Presentation",
-      duration: "30:15",
-      date: "2024-12-19",
-      summary: "Presented MetaWorkspace AI features, received positive feedback, discussed integration timeline",
-      actionItems: [
-        "Follow up with technical specifications",
-        "Schedule next demo for Q1",
-        "Prepare deployment documentation"
-      ],
-      participants: ["team@metaworkspace.ai", "client@company.com"]
-    }
-  ]);
+  const [recordings, setRecordings] = useState<Array<{
+    id: number;
+    title: string;
+    duration: string;
+    date: string;
+    summary: string;
+    actionItems: string[];
+    participants: string[];
+  }>>([]);
+
+  // Load recordings from blockchain/IPFS
+  useEffect(() => {
+    const loadRecordings = async () => {
+      try {
+        // Fetch real meeting recordings from blockchain
+        const response = await fetch('/api/blockchain/nfts?type=video&room=metaworkspace-main');
+        if (response.ok) {
+          const data = await response.json();
+          // Transform NFT data to recordings format
+          const nftRecordings = data.nfts?.map((nft: {
+            timestamp: number;
+            duration: number;
+            summary?: string;
+            actionItems?: string[];
+            participants?: string[];
+          }, index: number) => ({
+            id: index + 1,
+            title: `Meeting ${new Date(nft.timestamp * 1000).toLocaleDateString()}`,
+            duration: `${Math.floor(nft.duration / 60)}:${(nft.duration % 60).toString().padStart(2, '0')}`,
+            date: new Date(nft.timestamp * 1000).toISOString().split('T')[0],
+            summary: nft.summary || "AI-generated meeting summary",
+            actionItems: nft.actionItems || ["Action items extracted by AI"],
+            participants: nft.participants || ["Unknown participants"]
+          })) || [];
+          
+          // Add demo data if no real recordings yet
+          if (nftRecordings.length === 0) {
+            setRecordings([
+              {
+                id: 1,
+                title: "Demo: Team Planning Session",
+                duration: "45:32",
+                date: "2024-12-20",
+                summary: "Demo recording - Discussed Q1 roadmap, assigned tasks to team members, set deadlines for MVP features",
+                actionItems: [
+                  "Alice: Design wireframes by Friday",
+                  "Bob: Set up development environment",
+                  "Carol: Research competitor analysis"
+                ],
+                participants: ["alice.eth", "bob.eth", "carol.eth"]
+              }
+            ]);
+          } else {
+            setRecordings(nftRecordings);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load recordings:', error);
+        // Fallback to demo data
+        setRecordings([
+          {
+            id: 1,
+            title: "Demo: Team Planning Session",
+            duration: "45:32",
+            date: "2024-12-20",
+            summary: "Demo recording - Failed to load from blockchain",
+            actionItems: ["Check blockchain connection"],
+            participants: ["demo.eth"]
+          }
+        ]);
+      }
+    };
+
+    loadRecordings();
+  }, []);
 
   const [currentRecording, setCurrentRecording] = useState({
     duration: "00:00",

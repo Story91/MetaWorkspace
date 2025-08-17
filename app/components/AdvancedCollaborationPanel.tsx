@@ -33,8 +33,7 @@ export function AdvancedCollaborationPanel() {
     viewCast,
     shareURL,
     notification,
-    context,
-    isAvailable
+    context
   } = useMiniKitFeatures();
   
   const [meetingCasts] = useState([

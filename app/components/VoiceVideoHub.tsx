@@ -1,10 +1,10 @@
 "use client";
 
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback, useRef, useEffect, useMemo } from "react";
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
-import { blockchainService, type VoiceNFT, type VideoNFT } from "../services/blockchainService";
+import { blockchainService, type VoiceNFT } from "../services/blockchainService";
 import { IPFSStorageService } from "../services/ipfsStorage";
 
 // RecordRTC types
@@ -54,7 +54,7 @@ export function VoiceVideoHub() {
   const [voiceNFTs, setVoiceNFTs] = useState<VoiceNFT[]>([]);
   const [currentRoomId] = useState("metaworkspace-main-room");
   const [isWalletConnected, setIsWalletConnected] = useState(false);
-  const ipfsService = new IPFSStorageService();
+  const ipfsService = useMemo(() => new IPFSStorageService(), []);
   
   // Video Meeting State
   const [isInVideoCall, setIsInVideoCall] = useState(false);

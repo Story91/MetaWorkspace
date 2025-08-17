@@ -40,10 +40,10 @@ FARCASTER SDK METHODS:
 • No OAuth needed - wallet signatures for auth
 
 RESPONSE RULES:
-• Give complete, actionable answers
-• Include exact field constraints from manifest.mdx
-• Use proper JSON examples
-• Be precise about required vs optional fields
+• FOR MANIFEST QUESTIONS: Give complete technical answers with JSON examples
+• FOR USER QUESTIONS: Keep answers under 100 words, simple and user-friendly
+• FOR "Record voice", "Create room", "Get help": Focus on step-by-step user actions
+• Use simple language for end users, technical details only for manifest helper
 
 Current: MetaWorkspace (Farcaster Mini App on Base)
 User: ${context?.userId || 'Developer'}
@@ -58,9 +58,9 @@ Reference the LOCAL manifest.mdx file for Base manifest questions.`;
       }
     ];
 
-    // Add previous messages if available
+    // Add previous messages if available (limit to last 6 for API efficiency)
     if (context?.previousMessages && context.previousMessages.length > 0) {
-      const recentMessages = context.previousMessages.slice(-10); // Keep last 10 messages
+      const recentMessages = context.previousMessages.slice(-6); // Keep last 6 messages for context
       for (const msg of recentMessages) {
         messages.push({
           role: msg.role === 'user' ? 'user' : 'assistant',
@@ -75,12 +75,19 @@ Reference the LOCAL manifest.mdx file for Base manifest questions.`;
       content: message
     });
 
-    // Call OpenAI API with higher token limit for complete responses
+    // Determine token limit based on question type
+    const isManifestQuestion = message.toLowerCase().includes('manifest') || 
+                              message.toLowerCase().includes('farcaster.json') ||
+                              message.toLowerCase().includes('.well-known');
+    
+    const maxTokens = isManifestQuestion ? 600 : 200; // More tokens only for manifest questions
+
+    // Call OpenAI API
     const completion = await openai.chat.completions.create({
       model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages,
       temperature: 0.3,
-      max_tokens: 600, // Higher limit for complete manifest examples
+      max_tokens: maxTokens,
       presence_penalty: 0.2,
       frequency_penalty: 0.2,
     });

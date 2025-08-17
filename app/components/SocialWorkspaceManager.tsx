@@ -49,7 +49,7 @@ export function SocialWorkspaceManager() {
       const qrData = await generateQR({
         type: "workspace_invite",
         workspaceId: "metaworkspace-ai",
-        inviter: userProfile?.username || "anonymous"
+        inviter: (userProfile as { username?: string })?.username || "anonymous"
       });
       console.log("Team QR generated:", qrData);
       
@@ -66,7 +66,7 @@ export function SocialWorkspaceManager() {
 
   const handleSignWorkProof = useCallback(async () => {
     try {
-      const message = `MetaWorkspace AI - Work Verification\nUser: ${userProfile?.username}\nTimestamp: ${new Date().toISOString()}\nTasks: 12 completed\nHours: 8.5h`;
+      const message = `MetaWorkspace AI - Work Verification\nUser: ${(userProfile as { username?: string })?.username || 'Anonymous'}\nTimestamp: ${new Date().toISOString()}\nTasks: 12 completed\nHours: 8.5h`;
       const signature = await signMessage({ message });
       setSignedMessage(signature);
       
@@ -102,7 +102,7 @@ export function SocialWorkspaceManager() {
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-3">
           <div className="neu-card p-4 gradient-accent text-white text-center">
-            <div className="text-xl font-bold">{socialGraph?.following?.length || 47}</div>
+            <div className="text-xl font-bold">{(socialGraph as { following?: { length?: number } })?.following?.length || 47}</div>
             <div className="text-xs opacity-90 mt-1">Team Network</div>
             <div className="text-xs opacity-75 mt-1">
               {isAvailable.socialGraph ? "Live" : "Demo"}
@@ -168,19 +168,22 @@ export function SocialWorkspaceManager() {
           </div>
         </div>
 
-        {userProfile && (
-          <div className="neu-card p-4 text-center">
-            <div className="text-sm font-medium text-[var(--app-foreground)] mb-1">
-              Welcome, {userProfile.username || userProfile.displayName}!
+{(() => {
+          const profile = userProfile as { username?: string; displayName?: string; bio?: string } | null;
+          return profile && (
+            <div className="neu-card p-4 text-center">
+              <div className="text-sm font-medium text-[var(--app-foreground)] mb-1">
+                Welcome, {profile.username || profile.displayName}!
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)]">
+                Professional workspace member since {new Date().getFullYear()}
+              </div>
+              <div className="text-xs text-[var(--app-foreground-muted)] mt-1">
+                {profile.bio}
+              </div>
             </div>
-            <div className="text-xs text-[var(--app-foreground-muted)]">
-              Professional workspace member since {new Date().getFullYear()}
-            </div>
-            <div className="text-xs text-[var(--app-foreground-muted)] mt-1">
-              {userProfile.bio}
-            </div>
-          </div>
-        )}
+          );
+        })()}
 
         <div className="text-xs text-center text-[var(--app-foreground-muted)] bg-[var(--app-accent-light)] p-2 rounded">
           🔧 Feature Status: Notifications ✅ | QR {isAvailable.qrGeneration ? "✅" : "🔧"} | Social {isAvailable.socialGraph ? "✅" : "🔧"} | Signing {isAvailable.messageSign ? "✅" : "🔧"}

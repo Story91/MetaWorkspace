@@ -10,7 +10,7 @@ import {
   http, 
   type Address,
   type Hash,
-  parseEther,
+
   type PublicClient,
   type WalletClient
 } from 'viem';
@@ -69,7 +69,7 @@ export class BlockchainService {
     this.publicClient = createPublicClient({
       chain: this.chain,
       transport: http()
-    }) as any;
+    }) as PublicClient;
   }
 
   /**

@@ -4,8 +4,8 @@ export interface AIConversation {
   conversation_id: string;
   user_id: string;
   room_id: string;
-  messages: any[];
-  context?: any;
+  messages: unknown[];
+  context?: unknown;
   created_at: Date;
 }
 
@@ -13,7 +13,7 @@ export interface UserSession {
   farcaster_id: string;
   wallet_address?: string;
   last_active: Date;
-  preferences?: any;
+  preferences?: unknown;
 }
 
 export interface CachedRoom {
@@ -91,7 +91,7 @@ export class DatabaseService {
   }
 
   // AI Conversations
-  async saveConversation(userId: string, roomId: string, messages: any[], context?: any): Promise<string> {
+  async saveConversation(userId: string, roomId: string, messages: unknown[], context?: unknown): Promise<string> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
     }
@@ -103,7 +103,7 @@ export class DatabaseService {
         RETURNING conversation_id
       `;
       
-      return (result as any[])[0]?.conversation_id || '';
+      return (result as { conversation_id: string }[])[0]?.conversation_id || '';
     } catch (error) {
       console.error('Failed to save conversation:', error);
       throw error;
@@ -131,7 +131,7 @@ export class DatabaseService {
         `;
       }
       
-      return (result as any[]).map((row: any) => ({
+      return (result as AIConversation[]).map((row: AIConversation) => ({
         ...row,
         created_at: new Date(row.created_at)
       }));
@@ -142,7 +142,7 @@ export class DatabaseService {
   }
 
   // User Sessions
-  async updateUserSession(farcasterId: string, walletAddress?: string, preferences?: any): Promise<void> {
+  async updateUserSession(farcasterId: string, walletAddress?: string, preferences?: unknown): Promise<void> {
     if (!this.isConnected) return;
 
     try {
@@ -168,8 +168,8 @@ export class DatabaseService {
         SELECT * FROM user_sessions WHERE farcaster_id = ${farcasterId}
       `;
       
-      if ((result as any[]).length > 0) {
-        const row = (result as any[])[0];
+      if ((result as UserSession[]).length > 0) {
+        const row = (result as UserSession[])[0];
         return {
           ...row,
           last_active: new Date(row.last_active)
@@ -210,7 +210,7 @@ export class DatabaseService {
         SELECT * FROM cached_rooms ORDER BY last_synced DESC
       `;
       
-      return (result as any[]).map((row: any) => ({
+      return (result as CachedRoom[]).map((row: CachedRoom) => ({
         ...row,
         created_at: new Date(row.created_at),
         last_synced: new Date(row.last_synced)

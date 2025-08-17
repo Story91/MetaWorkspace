@@ -74,7 +74,7 @@ function ChatBubble({ message, isUser }: { message: ChatMessage; isUser: boolean
   );
 }
 
-function MessageContent({ content, isUser }: { content: string; isUser: boolean }) {
+function MessageContent({ content }: { content: string; isUser: boolean }) {
   const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
 
   const handleCopy = async (codeContent: string, index: number) => {
@@ -177,7 +177,7 @@ function MessageContent({ content, isUser }: { content: string; isUser: boolean 
 }
 
 export function AITaskAssistant() {
-  const { notification } = useMiniKitFeatures();
+  const { notification, userProfile, fetchUserProfile, context, viewProfile } = useMiniKitFeatures();
   
   // Load messages from localStorage on component mount
   const loadStoredMessages = (): ChatMessage[] => {
@@ -186,7 +186,7 @@ export function AITaskAssistant() {
       const stored = localStorage.getItem('metaworkspace-chat-messages');
       if (stored) {
         const parsed = JSON.parse(stored);
-        return parsed.map((msg: any) => ({
+        return parsed.map((msg: { id: string; type: string; content: string; timestamp: string; avatar?: string }) => ({
           ...msg,
           timestamp: new Date(msg.timestamp)
         }));
@@ -197,11 +197,20 @@ export function AITaskAssistant() {
     return defaultMessages;
   };
 
+  const getWelcomeMessage = () => {
+    const userName = userProfile ? 
+      (userProfile as { username?: string; displayName?: string }).username || 
+      (userProfile as { username?: string; displayName?: string }).displayName || 
+      'Developer' : 'Developer';
+    
+    return `Hi ${userName}! I'm your Base + Farcaster Mini Apps Expert. I have access to official documentation and specialize in:\n\n• Base Manifest (/.well-known/farcaster.json)\n• @farcaster/miniapp-sdk methods\n• Quick Auth & wallet signatures\n• Base App discovery & embeds\n\nHow can I help you build your Mini App?`;
+  };
+
   const defaultMessages: ChatMessage[] = [
     {
       id: '1',
       type: 'ai',
-      content: 'Hi! I\'m your Base + Farcaster Mini Apps Expert. I have access to official documentation and specialize in:\n\n• Base Manifest (/.well-known/farcaster.json)\n• @farcaster/miniapp-sdk methods\n• Quick Auth & wallet signatures\n• Base App discovery & embeds\n\nHow can I help you build your Mini App?',
+      content: getWelcomeMessage(),
       timestamp: new Date(),
       avatar: '🤖'
     }
@@ -215,12 +224,12 @@ export function AITaskAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Quick action suggestions - MetaWorkspace focused
+  // Quick action suggestions - User-focused
   const [quickActions] = useState([
     { id: 'manifest-helper', icon: '📋', text: 'Manifest helper', action: 'Create a complete /.well-known/farcaster.json manifest for MetaWorkspace Mini App' },
-    { id: 'voice-nft', icon: '🎤', text: 'Voice NFT setup', action: 'How do I mint Voice NFTs in MetaWorkspace using our smart contract?' },
-    { id: 'room-creation', icon: '🏛️', text: 'Room creation', action: 'Guide me through creating workspace rooms with blockchain verification' },
-    { id: 'ai-integration', icon: '🤖', text: 'AI integration', action: 'How does MetaWorkspace AI Task Assistant work with OpenAI and blockchain logging?' }
+    { id: 'voice-recording', icon: '🎤', text: 'Record voice', action: 'How do I record my voice and save it as NFT in MetaWorkspace?' },
+    { id: 'create-room', icon: '🏛️', text: 'Create room', action: 'How do I create a new workspace room?' },
+    { id: 'get-help', icon: '❓', text: 'Get help', action: 'What can I do in MetaWorkspace? Show me the main features.' }
   ]);
 
   const scrollToBottom = useCallback(() => {
@@ -255,6 +264,11 @@ export function AITaskAssistant() {
     }
   }, [messages, scrollToBottom]);
 
+  // Fetch user profile on component mount
+  useEffect(() => {
+    fetchUserProfile();
+  }, [fetchUserProfile]);
+
   const callRealAI = useCallback(async (userMessage: string): Promise<string> => {
     try {
       const response = await fetch('/api/ai/chat', {
@@ -266,7 +280,9 @@ export function AITaskAssistant() {
           message: userMessage,
           context: {
             roomId: 'metaworkspace-main-room',
-            userId: 'metaworkspace.eth',
+            userId: context?.user?.fid || 'metaworkspace.eth',
+            userProfile: userProfile,
+            farcasterId: context?.user?.fid,
             previousMessages: messages.slice(-5).map(m => ({
               role: m.type === 'user' ? 'user' : 'assistant',
               content: m.content
@@ -365,7 +381,7 @@ export function AITaskAssistant() {
       <div className="space-y-3">
         {/* Chat Messages */}
         <div className="h-80 max-h-80 overflow-y-auto bg-gradient-to-b from-green-900/20 to-transparent p-3 rounded-lg border border-green-500/30 font-mono text-xs">
-          {messages.map((message) => (
+          {messages.slice(-10).map((message) => (
             <ChatBubble 
               key={message.id} 
               message={message} 

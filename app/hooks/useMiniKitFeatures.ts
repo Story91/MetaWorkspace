@@ -4,7 +4,8 @@ import {
   useMiniKit,
   useAddFrame,
   useOpenUrl,
-  useNotification
+  useNotification,
+  useViewProfile
 } from "@coinbase/onchainkit/minikit";
 import { useCallback, useState } from "react";
 
@@ -16,16 +17,29 @@ export function useMiniKitFeatures() {
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
   const notification = useNotification();
+  const viewProfile = useViewProfile(); // Current user's profile
   
   // Real API data state
-  const [socialData, setSocialData] = useState<any>(null);
-  const [userProfile, setUserProfile] = useState<any>(null);
+  const [socialData, setSocialData] = useState<unknown>(null);
+  const [userProfile, setUserProfile] = useState<unknown>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Real API functions
   const fetchUserProfile = useCallback(async () => {
     try {
       setIsLoading(true);
+      
+      // Try to get FID from MiniKit context first
+      if (context?.user?.fid) {
+        const response = await fetch(`/api/farcaster/profile?fid=${context.user.fid}`);
+        if (response.ok) {
+          const data = await response.json();
+          setUserProfile(data);
+          return;
+        }
+      }
+      
+      // Fallback to general profile endpoint
       const response = await fetch('/api/farcaster/profile');
       if (response.ok) {
         const data = await response.json();
@@ -36,7 +50,7 @@ export function useMiniKitFeatures() {
     } finally {
       setIsLoading(false);
     }
-  }, []);
+  }, [context?.user?.fid]);
 
   const fetchSocialGraph = useCallback(async () => {
     try {
@@ -60,7 +74,7 @@ export function useMiniKitFeatures() {
     await new Promise(resolve => setTimeout(resolve, 500));
   }, []);
 
-  const mockSignMessage = useCallback(async (params: { message: string }) => {
+  const mockSignMessage = useCallback(async (_params: { message: string }) => {
     // Future: Real message signing with wallet
     return `signed_${Date.now()}`;
   }, []);
@@ -89,6 +103,7 @@ export function useMiniKitFeatures() {
     addFrame,
     openUrl,
     notification,
+    viewProfile, // View current user's profile
     
     // Real API data and functions
     socialGraph: socialData,
@@ -108,6 +123,7 @@ export function useMiniKitFeatures() {
       notifications: true,
       frames: true,
       socialGraph: true, // Now using real API
+      profileView: true, // Real profile viewing
       messageSign: false, // Mock until available
       qrGeneration: false, // Mock until available
       urlSharing: true // Partial support

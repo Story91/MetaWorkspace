@@ -175,7 +175,7 @@ type WorkspaceOverviewProps = {
   setActiveTab: (tab: string) => void;
 };
 
-export function WorkspaceOverview({ setActiveTab }: WorkspaceOverviewProps) {
+export function WorkspaceOverview({ }: WorkspaceOverviewProps) {
   return (
     <div className="space-y-5 animate-fade-in">
       <AITaskAssistant />
@@ -293,7 +293,7 @@ export function Icon({ name, size = "md", className = "" }: IconProps) {
 // AITaskManager function removed - replaced by AITaskAssistant component
 
 
-function BlockchainWorkLogger() {
+export function BlockchainWorkLogger() {
   const { address } = useAccount();
   const [workHours] = useState(8.5);
   const [tasksCompleted] = useState(12);

@@ -9,7 +9,10 @@ import { blockchainStorage, type VoiceNFT } from "../services/blockchainStorage"
 // RecordRTC types
 declare global {
   interface Window {
-    RecordRTC: unknown;
+    RecordRTC: {
+      new (stream: MediaStream, options: unknown): unknown;
+      StereoAudioRecorder: unknown;
+    };
   }
 }
 
@@ -145,7 +148,7 @@ export function VoiceVideoHub() {
 
       // Initialize RecordRTC when library is loaded
       if (window.RecordRTC) {
-        recorder.current = new window.RecordRTC(stream.current, {
+        recorder.current = new (window.RecordRTC as { new (stream: MediaStream, options: unknown): unknown })(stream.current, {
           type: 'audio',
           mimeType: 'audio/wav',
           recorderType: window.RecordRTC.StereoAudioRecorder,

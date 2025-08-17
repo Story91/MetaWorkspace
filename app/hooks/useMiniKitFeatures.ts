@@ -43,7 +43,7 @@ export function useMiniKitFeatures() {
     return `signed_${Date.now()}`;
   }, []);
 
-  const mockGenerateQR = useCallback(async (data: any) => {
+  const mockGenerateQR = useCallback(async (data: unknown) => {
     console.log("Mock QR generation:", data);
     // Future: Real QR code generation
     return `qr_data_${Date.now()}`;

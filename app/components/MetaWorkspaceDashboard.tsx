@@ -8,6 +8,7 @@ import SmartMeetingRecorder from "./SmartMeetingRecorder";
 import VoiceVideoHub from "./VoiceVideoHub";
 import AdvancedUIFeatures from "./AdvancedUIFeatures";
 import RoomManager from "./RoomManager";
+import AboutGuide from "./AboutGuide";
 
 export function MetaWorkspaceDashboard() {
   const [activeTab, setActiveTab] = useState("dashboard");
@@ -30,6 +31,8 @@ export function MetaWorkspaceDashboard() {
         return <AdvancedUIFeatures />;
       case "rooms":
         return <RoomManager />;
+      case "about":
+        return <AboutGuide />;
       default:
         return <WorkspaceOverview setActiveTab={setActiveTab} />;
     }
@@ -37,18 +40,39 @@ export function MetaWorkspaceDashboard() {
 
   return (
     <div className="space-y-3 animate-fade-in">
-      {/* Navigation Tabs - Full Width Compact Tiles */}
-      <div className="mb-2">
+      {/* Navigation Tabs - Two Rows */}
+      <div className="mb-2 space-y-1">
+        {/* First Row */}
         <div className="flex justify-between gap-1 p-2 neu-card w-full">
           {[
             { id: "dashboard", icon: "🏢" },
             { id: "voice", icon: "🎤" },
             { id: "social", icon: "🌐" },
             { id: "collaboration", icon: "🤝" },
-            { id: "meetings", icon: "📹" },
+            { id: "meetings", icon: "📹" }
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-1 h-10 rounded-lg transition-all duration-300 flex items-center justify-center text-sm ${
+                activeTab === tab.id
+                  ? "gradient-accent text-white shadow-lg"
+                  : "bg-blue-100 dark:bg-blue-900/50 hover:bg-blue-200 dark:hover:bg-blue-800/50 hover:scale-105"
+              }`}
+              title={tab.id}
+            >
+              {tab.icon}
+            </button>
+          ))}
+        </div>
+        
+        {/* Second Row */}
+        <div className="flex justify-between gap-1 p-2 neu-card w-full">
+          {[
             { id: "rooms", icon: "🏛️" },
             { id: "advanced", icon: "⚡" },
-            { id: "features", icon: "🚀" }
+            { id: "features", icon: "🚀" },
+            { id: "about", icon: "📖" }
           ].map((tab) => (
             <button
               key={tab.id}

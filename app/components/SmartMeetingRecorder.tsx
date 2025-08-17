@@ -95,7 +95,7 @@ export function SmartMeetingRecorder() {
       clearInterval(interval);
       handleStopRecording();
     }, 10000);
-  }, [notification]);
+  }, [notification, handleStopRecording]);
 
   const handleStopRecording = useCallback(async () => {
     setIsRecording(false);

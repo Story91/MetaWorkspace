@@ -4,12 +4,12 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
-import { blockchainStorage, type VoiceNFT, type VideoNFT } from "../services/blockchainStorage";
+import { blockchainStorage, type VoiceNFT } from "../services/blockchainStorage";
 
 // RecordRTC types
 declare global {
   interface Window {
-    RecordRTC: any;
+    RecordRTC: unknown;
   }
 }
 
@@ -89,9 +89,9 @@ export function VoiceVideoHub() {
     };
   }, [currentRoomId]);
 
-  const setupAudioAnalyzer = useCallback((mediaStream: MediaStream) => {
+  const setupAudioAnalyzer = useCallback((mediaStream: MediaStream): void => {
     try {
-      audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      audioContext.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
       analyser.current = audioContext.current.createAnalyser();
       const source = audioContext.current.createMediaStreamSource(mediaStream);
       source.connect(analyser.current);
@@ -181,6 +181,8 @@ export function VoiceVideoHub() {
       setIsRecordingVoice(false);
     }
   }, [notification, setupAudioAnalyzer]);
+  
+  // Silence the dependency warning - handleStopVoiceRecording is defined in the same component
 
   const handleStopVoiceRecording = useCallback(async () => {
     setIsRecordingVoice(false);
@@ -255,7 +257,7 @@ export function VoiceVideoHub() {
         }
       }, 1500);
     }
-  }, [notification, recordingDuration]);
+  }, [notification, recordingDuration, currentRoomId]);
 
   const handleJoinVideoCall = useCallback(async (meetingId: number) => {
     const meeting = videoMeetings.find(m => m.id === meetingId);
@@ -366,10 +368,10 @@ export function VoiceVideoHub() {
                   </div>
                 </div>
                 <div className="flex space-x-1">
-                  <Button variant="ghost" size="sm" title="Play NFT Recording">
+                  <Button variant="ghost" size="sm">
                     ▶️
                   </Button>
-                  <Button variant="ghost" size="sm" title="View on Blockchain">
+                  <Button variant="ghost" size="sm">
                     🔗
                   </Button>
                 </div>

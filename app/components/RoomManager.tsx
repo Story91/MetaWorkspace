@@ -143,6 +143,7 @@ export function RoomManager() {
     }
   }, [newRoomName, newRoomWhitelist, isPublicRoom, notification]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAddToWhitelist = useCallback(async (roomId: string, username: string) => {
     try {
       await notification({
@@ -174,6 +175,7 @@ export function RoomManager() {
     }
   }, [notification]);
 
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const checkUserAccess = useCallback(async (roomId: string) => {
     const hasAccess = await blockchainStorage.checkRoomAccess(roomId, currentUserFid);
     return hasAccess;
@@ -315,10 +317,10 @@ export function RoomManager() {
                     {room.settings.allowVideoNFTs && <span>📹 Video NFTs</span>}
                   </div>
                   <div className="flex space-x-1">
-                    <Button variant="ghost" size="sm" title="View Room">
+                    <Button variant="ghost" size="sm">
                       👁️
                     </Button>
-                    <Button variant="ghost" size="sm" title="Room Settings">
+                    <Button variant="ghost" size="sm">
                       ⚙️
                     </Button>
                   </div>

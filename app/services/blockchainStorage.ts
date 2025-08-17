@@ -10,6 +10,7 @@
  */
 
 import { type PublicClient, type WalletClient } from 'viem';
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { base } from 'viem/chains';
 
 // Types for our blockchain storage system
@@ -60,6 +61,7 @@ export interface IPFSUploadResult {
 }
 
 // Smart Contract ABIs (simplified for demo)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const VOICE_NFT_ABI = [
   {
     name: 'mintVoiceNFT',
@@ -87,6 +89,7 @@ const VOICE_NFT_ABI = [
   }
 ] as const;
 
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const ROOM_MANAGER_ABI = [
   {
     name: 'createRoom',
@@ -118,6 +121,7 @@ const ROOM_MANAGER_ABI = [
 ] as const;
 
 // Contract addresses (these would be deployed on Base L2)
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
 const CONTRACTS = {
   VOICE_NFT: '0x1234567890123456789012345678901234567890' as const,
   VIDEO_NFT: '0x2345678901234567890123456789012345678901' as const,
@@ -136,7 +140,7 @@ export class BlockchainStorageService {
   /**
    * Upload media to IPFS
    */
-  async uploadToIPFS(file: Blob, metadata: any): Promise<IPFSUploadResult> {
+  async uploadToIPFS(file: Blob, metadata: Record<string, unknown>): Promise<IPFSUploadResult> {
     try {
       // In production, this would use a service like Pinata, Web3.Storage, or own IPFS node
       const formData = new FormData();

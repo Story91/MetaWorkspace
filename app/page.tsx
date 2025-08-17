@@ -26,6 +26,7 @@ import MetaWorkspaceDashboard from "./components/MetaWorkspaceDashboard";
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const [activeTab, setActiveTab] = useState("home");
   const [isDarkMode, setIsDarkMode] = useState(() => {
     if (typeof window !== 'undefined') {
@@ -37,6 +38,7 @@ export default function App() {
 
   // Available MiniKit Hooks
   const addFrame = useAddFrame();
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const openUrl = useOpenUrl();
 
   useEffect(() => {

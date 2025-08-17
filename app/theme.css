@@ -4,34 +4,54 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --app-background: #ffffff;
-  --app-foreground: #111111;
-  --app-foreground-muted: #58585c;
-  --app-accent: #0052ff;
-  --app-accent-hover: #0047e1;
-  --app-accent-active: #003db8;
-  --app-accent-light: #e6edff;
-  --app-gray: #f5f5f5;
-  --app-gray-dark: #e0e0e0;
-  --app-card-bg: rgba(255, 255, 255, 0.4);
-  --app-card-border: rgba(0, 0, 0, 0.1);
+/* Hide scrollbar */
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --app-background: #111111;
-    --app-foreground: #ffffff;
-    --app-foreground-muted: #c8c8d1;
-    --app-accent: #0052ff;
-    --app-accent-hover: #0047e1;
-    --app-accent-active: #003db8;
-    --app-accent-light: #1e293b;
-    --app-gray: #1e1e1e;
-    --app-gray-dark: #2e2e2e;
-    --app-card-bg: rgba(17, 17, 17, 0.4);
-    --app-card-border: rgba(115, 115, 115, 0.5);
-  }
+:root {
+  /* MetaWorkspace Modern Color Palette */
+  --app-background: linear-gradient(135deg, #f8fdff 0%, #e8f4f8 100%);
+  --app-foreground: #1a365d;
+  --app-foreground-muted: #4a5568;
+  --app-accent: #457B9D; /* Mięta - kolor uzupełniający */
+  --app-accent-hover: #3d6b85;
+  --app-accent-active: #2a4c5f;
+  --app-accent-light: rgba(168, 218, 220, 0.2); /* Pastelowy błękit */
+  --app-coral: #E63946; /* Koral - kolor akcentujący */
+  --app-coral-hover: #d32f2f;
+  --app-mint: #A8DADC; /* Pastelowy błękit - dominujący */
+  --app-mint-dark: #8bc5c7;
+  --app-gray: #f7fafc;
+  --app-gray-dark: #e2e8f0;
+  --app-card-bg: rgba(255, 255, 255, 0.85);
+  --app-card-border: rgba(168, 218, 220, 0.3);
+  --app-shadow-neu: 8px 8px 16px rgba(168, 218, 220, 0.4), -8px -8px 16px rgba(255, 255, 255, 0.9);
+  --app-shadow-inset: inset 4px 4px 8px rgba(168, 218, 220, 0.3), inset -4px -4px 8px rgba(255, 255, 255, 0.9);
+}
+
+.dark {
+  --app-background: linear-gradient(135deg, #0f1419 0%, #1a202c 100%);
+  --app-foreground: #e2e8f0;
+  --app-foreground-muted: #a0aec0;
+  --app-accent: #68a3c4;
+  --app-accent-hover: #5a8fab;
+  --app-accent-active: #4c7c92;
+  --app-accent-light: rgba(104, 163, 196, 0.2);
+  --app-coral: #fc8181;
+  --app-coral-hover: #f56565;
+  --app-mint: #81c3c6;
+  --app-mint-dark: #6bb3b6;
+  --app-gray: #2d3748;
+  --app-gray-dark: #4a5568;
+  --app-card-bg: rgba(45, 55, 72, 0.85);
+  --app-card-border: rgba(104, 163, 196, 0.2);
+  --app-shadow-neu: 8px 8px 16px rgba(0, 0, 0, 0.4), -8px -8px 16px rgba(45, 55, 72, 0.9);
+  --app-shadow-inset: inset 4px 4px 8px rgba(0, 0, 0, 0.3), inset -4px -4px 8px rgba(45, 55, 72, 0.9);
 }
 
 .mini-app-theme {
@@ -99,6 +119,56 @@ body {
   font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
+}
+
+/* Neomorphism Components */
+.neu-card {
+  @apply bg-white/80 dark:bg-gray-800/80 backdrop-blur-lg;
+  @apply border border-blue-200/30 dark:border-gray-600/30;
+  @apply shadow-lg;
+  border-radius: 20px;
+}
+
+.neu-button {
+  @apply bg-white/70 dark:bg-gray-700/70 backdrop-blur-lg;
+  @apply border-0 shadow-md hover:shadow-lg transition-all duration-300;
+  border-radius: 12px;
+}
+
+.neu-button:hover {
+  box-shadow: var(--app-shadow-inset);
+  transform: translateY(2px);
+}
+
+.neu-button:active {
+  box-shadow: var(--app-shadow-inset);
+  transform: translateY(4px);
+}
+
+.neu-input {
+  @apply bg-white/70 dark:bg-gray-700/70 backdrop-blur-lg;
+  @apply border border-blue-200/40 dark:border-gray-500/40;
+  @apply shadow-inner focus:shadow-lg transition-all duration-300;
+  @apply text-gray-900 dark:text-gray-100;
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.neu-input:focus {
+  box-shadow: var(--app-shadow-neu), 0 0 0 3px var(--app-accent-light);
+  outline: none;
+}
+
+.gradient-coral {
+  @apply bg-gradient-to-br from-red-400 to-red-600 dark:from-red-500 dark:to-red-700;
+}
+
+.gradient-mint {
+  @apply bg-gradient-to-br from-teal-400 to-teal-600 dark:from-teal-500 dark:to-teal-700;
+}
+
+.gradient-accent {
+  @apply bg-gradient-to-br from-blue-500 to-blue-700 dark:from-blue-600 dark:to-blue-800;
 }
 
 @layer utilities {

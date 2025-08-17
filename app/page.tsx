@@ -21,14 +21,21 @@ import {
 import { useEffect, useMemo, useState, useCallback } from "react";
 import { Button } from "./components/DemoComponents";
 import { Icon } from "./components/DemoComponents";
-import { Home } from "./components/DemoComponents";
-import { Features } from "./components/DemoComponents";
+import MetaWorkspaceDashboard from "./components/MetaWorkspaceDashboard";
 
 export default function App() {
   const { setFrameReady, isFrameReady, context } = useMiniKit();
   const [frameAdded, setFrameAdded] = useState(false);
   const [activeTab, setActiveTab] = useState("home");
+  const [isDarkMode, setIsDarkMode] = useState(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('metaworkspace-dark-mode');
+      return saved ? JSON.parse(saved) : false;
+    }
+    return false;
+  });
 
+  // Available MiniKit Hooks
   const addFrame = useAddFrame();
   const openUrl = useOpenUrl();
 
@@ -38,6 +45,25 @@ export default function App() {
     }
   }, [setFrameReady, isFrameReady]);
 
+  // Dark mode toggle effect
+  useEffect(() => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+      document.body.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+      document.body.classList.remove('dark');
+    }
+    // Save to localStorage
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('metaworkspace-dark-mode', JSON.stringify(isDarkMode));
+    }
+  }, [isDarkMode]);
+
+  const toggleDarkMode = useCallback(() => {
+    setIsDarkMode((prev: boolean) => !prev);
+  }, []);
+
   const handleAddFrame = useCallback(async () => {
     const frameAdded = await addFrame();
     setFrameAdded(Boolean(frameAdded));
@@ -46,15 +72,15 @@ export default function App() {
   const saveFrameButton = useMemo(() => {
     if (context && !context.client.added) {
       return (
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={handleAddFrame}
-          className="text-[var(--app-accent)] p-4"
-          icon={<Icon name="plus" size="sm" />}
-        >
-          Save Frame
-        </Button>
+                  <Button
+            variant="ghost"
+            size="sm"
+            onClick={handleAddFrame}
+            className="text-[var(--app-accent)] p-4"
+            icon={<Icon name="plus" size="sm" />}
+          >
+            Add Workspace
+          </Button>
       );
     }
 
@@ -62,7 +88,7 @@ export default function App() {
       return (
         <div className="flex items-center space-x-1 text-sm font-medium text-[#0052FF] animate-fade-out">
           <Icon name="check" size="sm" className="text-[#0052FF]" />
-          <span>Saved</span>
+          <span>Added ✨</span>
         </div>
       );
     }
@@ -71,11 +97,28 @@ export default function App() {
   }, [context, frameAdded, handleAddFrame]);
 
   return (
-    <div className="flex flex-col min-h-screen font-sans text-[var(--app-foreground)] mini-app-theme from-[var(--app-background)] to-[var(--app-gray)]">
-      <div className="w-full max-w-md mx-auto px-4 py-3">
+    <div className={`flex flex-col min-h-screen font-sans mini-app-theme transition-colors duration-300 ${
+      isDarkMode 
+        ? 'bg-gray-900 text-gray-100' 
+        : 'bg-gradient-to-br from-blue-50 to-indigo-100 text-gray-900'
+    }`}>
+      <div className="w-full max-w-md mx-auto px-4 py-4">
         <header className="flex justify-between items-center mb-3 h-11">
           <div>
             <div className="flex items-center space-x-2">
+              <button
+                onClick={toggleDarkMode}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  isDarkMode 
+                    ? "bg-yellow-500/20 hover:bg-yellow-500/30 text-yellow-400" 
+                    : "bg-blue-500/20 hover:bg-blue-500/30 text-blue-600"
+                }`}
+                title={isDarkMode ? "Switch to light mode" : "Switch to dark mode"}
+              >
+                <span className="text-lg">
+                  {isDarkMode ? "☀️" : "🌙"}
+                </span>
+              </button>
               <Wallet className="z-10">
                 <ConnectWallet>
                   <Name className="text-inherit" />
@@ -96,19 +139,13 @@ export default function App() {
         </header>
 
         <main className="flex-1">
-          {activeTab === "home" && <Home setActiveTab={setActiveTab} />}
-          {activeTab === "features" && <Features setActiveTab={setActiveTab} />}
+          <MetaWorkspaceDashboard />
         </main>
 
-        <footer className="mt-2 pt-4 flex justify-center">
-          <Button
-            variant="ghost"
-            size="sm"
-            className="text-[var(--ock-text-foreground-muted)] text-xs"
-            onClick={() => openUrl("https://base.org/builders/minikit")}
-          >
-            Built on Base with MiniKit
-          </Button>
+        <footer className="mt-4 pt-4 flex justify-center">
+          <div className="text-xs text-gray-500 dark:text-gray-400">
+            Powered by MetaWorkspace
+          </div>
         </footer>
       </div>
     </div>

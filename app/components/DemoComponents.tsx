@@ -16,6 +16,7 @@ import {
   TransactionStatus,
 } from "@coinbase/onchainkit/transaction";
 import { useNotification } from "@coinbase/onchainkit/minikit";
+import AITaskAssistant from "./AITaskAssistant";
 
 type ButtonProps = {
   children: ReactNode;
@@ -39,23 +40,23 @@ export function Button({
   icon,
 }: ButtonProps) {
   const baseClasses =
-    "inline-flex items-center justify-center font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-[#0052FF] disabled:opacity-50 disabled:pointer-events-none";
+    "inline-flex items-center justify-center font-medium transition-all duration-300 focus:outline-none disabled:opacity-50 disabled:pointer-events-none neu-button";
 
   const variantClasses = {
     primary:
-      "bg-[var(--app-accent)] hover:bg-[var(--app-accent-hover)] text-[var(--app-background)]",
+      "gradient-accent text-white hover:shadow-lg",
     secondary:
-      "bg-[var(--app-gray)] hover:bg-[var(--app-gray-dark)] text-[var(--app-foreground)]",
+      "gradient-mint text-[var(--app-foreground)]",
     outline:
-      "border border-[var(--app-accent)] hover:bg-[var(--app-accent-light)] text-[var(--app-accent)]",
+      "border border-[var(--app-accent)] hover:gradient-accent hover:text-white text-[var(--app-accent)]",
     ghost:
-      "hover:bg-[var(--app-accent-light)] text-[var(--app-foreground-muted)]",
+      "hover:gradient-mint text-[var(--app-foreground-muted)] hover:text-[var(--app-foreground)]",
   };
 
   const sizeClasses = {
-    sm: "text-xs px-2.5 py-1.5 rounded-md",
-    md: "text-sm px-4 py-2 rounded-lg",
-    lg: "text-base px-6 py-3 rounded-lg",
+    sm: "text-xs px-3 py-2 rounded-xl",
+    md: "text-sm px-5 py-3 rounded-xl",
+    lg: "text-base px-7 py-4 rounded-xl",
   };
 
   return (
@@ -93,88 +94,133 @@ function Card({
 
   return (
     <div
-      className={`bg-[var(--app-card-bg)] backdrop-blur-md rounded-xl shadow-lg border border-[var(--app-card-border)] overflow-hidden transition-all hover:shadow-xl ${className} ${onClick ? "cursor-pointer" : ""}`}
+      className={`neu-card overflow-hidden transition-all duration-300 hover:shadow-xl ${className} ${onClick ? "cursor-pointer hover:scale-[1.02]" : ""}`}
       onClick={onClick}
       onKeyDown={onClick ? handleKeyDown : undefined}
       tabIndex={onClick ? 0 : undefined}
       role={onClick ? "button" : undefined}
     >
       {title && (
-        <div className="px-5 py-3 border-b border-[var(--app-card-border)]">
-          <h3 className="text-lg font-medium text-[var(--app-foreground)]">
+        <div className="px-6 py-4 border-b border-[var(--app-card-border)] gradient-mint">
+          <h3 className="text-lg font-semibold text-[var(--app-foreground)] flex items-center">
             {title}
           </h3>
         </div>
       )}
-      <div className="p-5">{children}</div>
+      <div className="p-6">{children}</div>
     </div>
   );
 }
 
-type FeaturesProps = {
+type WorkspaceFeaturesProps = {
   setActiveTab: (tab: string) => void;
 };
 
-export function Features({ setActiveTab }: FeaturesProps) {
+export function WorkspaceFeatures({ setActiveTab }: WorkspaceFeaturesProps) {
   return (
-    <div className="space-y-6 animate-fade-in">
-      <Card title="Key Features">
-        <ul className="space-y-3 mb-4">
-          <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
-              Minimalistic and beautiful UI design
-            </span>
-          </li>
-          <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
-              Responsive layout for all devices
-            </span>
-          </li>
-          <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
-              Dark mode support
-            </span>
-          </li>
-          <li className="flex items-start">
-            <Icon name="check" className="text-[var(--app-accent)] mt-1 mr-2" />
-            <span className="text-[var(--app-foreground-muted)]">
-              OnchainKit integration
-            </span>
-          </li>
-        </ul>
-        <Button variant="outline" onClick={() => setActiveTab("home")}>
-          Back to Home
-        </Button>
+    <div className="space-y-5 animate-fade-in">
+      <Card title="🚀 Complete MetaWorkspace Features">
+        <div className="space-y-5">
+          <div className="neu-card p-5 gradient-accent text-white">
+            <div className="flex items-center space-x-3 mb-3">
+              <Icon name="star" className="text-yellow-300" />
+              <span className="font-bold text-lg">AI Task Assistant</span>
+            </div>
+            <ul className="text-sm space-y-1 opacity-90">
+              <li>• Automatic task creation from meetings/conversations</li>
+              <li>• Real-time priority optimization</li>
+              <li>• Smart work distribution suggestions</li>
+              <li>• Automated progress reports</li>
+            </ul>
+          </div>
+          
+          <div className="neu-card p-5 gradient-mint">
+            <div className="flex items-center space-x-3 mb-3">
+              <Icon name="check" className="text-green-600" />
+              <span className="font-bold text-lg text-[var(--app-foreground)]">Blockchain Workspace Logs</span>
+            </div>
+            <ul className="text-sm space-y-1 text-[var(--app-foreground-muted)]">
+              <li>• Every task & decision recorded on Base L2</li>
+              <li>• Complete work history transparency</li>
+              <li>• Team achievement tokens & rewards</li>
+              <li>• Immutable IP ownership proofs</li>
+            </ul>
+          </div>
+          
+          <div className="neu-card p-5 gradient-coral text-white">
+            <div className="flex items-center space-x-3 mb-3">
+              <Icon name="heart" className="text-pink-200" />
+              <span className="font-bold text-lg">Decentralized Collaboration</span>
+            </div>
+            <ul className="text-sm space-y-1 opacity-90">
+              <li>• IPFS/Arweave document management</li>
+              <li>• Cross-DAO team integration</li>
+              <li>• Smart Meeting Recorder with AI summaries</li>
+              <li>• Global decentralized teams support</li>
+            </ul>
+          </div>
+        </div>
+        
+        <div className="mt-6 pt-4 border-t border-[var(--app-card-border)]">
+          <Button variant="secondary" onClick={() => setActiveTab("home")} className="w-full">
+            ← Return to Dashboard
+          </Button>
+        </div>
       </Card>
     </div>
   );
 }
 
-type HomeProps = {
+type WorkspaceOverviewProps = {
   setActiveTab: (tab: string) => void;
 };
 
-export function Home({ setActiveTab }: HomeProps) {
+export function WorkspaceOverview({ setActiveTab }: WorkspaceOverviewProps) {
   return (
-    <div className="space-y-6 animate-fade-in">
-      <Card title="My First Mini App">
-        <p className="text-[var(--app-foreground-muted)] mb-4">
-          This is a minimalistic Mini App built with OnchainKit components.
-        </p>
-        <Button
-          onClick={() => setActiveTab("features")}
-          icon={<Icon name="arrow-right" size="sm" />}
-        >
-          Explore Features
-        </Button>
+    <div className="space-y-5 animate-fade-in">
+      <Card title="🚀 MetaWorkspace AI - Virtual Office 2.0">
+        <div className="space-y-4">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="neu-card p-4 gradient-mint">
+              <div className="flex items-center space-x-2 mb-2">
+                <div className="w-3 h-3 bg-[var(--app-coral)] rounded-full animate-pulse"></div>
+                <span className="text-sm font-semibold text-[var(--app-foreground)]">AI Active</span>
+              </div>
+              <p className="text-xs text-[var(--app-foreground-muted)]">Smart automation running</p>
+            </div>
+            <div className="neu-card p-4 gradient-accent text-white">
+              <div className="flex items-center space-x-2 mb-2">
+                <Icon name="check" className="text-white" size="sm" />
+                <span className="text-sm font-semibold">Blockchain Live</span>
+              </div>
+              <p className="text-xs opacity-90">Base L2 verified</p>
+            </div>
+          </div>
+          
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-[var(--app-foreground)]">
+                Decentralized workspace with AI automation & Web3 verification
+              </p>
+              <p className="text-xs text-[var(--app-foreground-muted)] mt-1">
+                🤖 Task automation • ⛓️ IP protection • 🌐 DAO collaboration
+              </p>
+            </div>
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setActiveTab("features")}
+              icon={<Icon name="arrow-right" size="sm" />}
+            >
+              Explore
+            </Button>
+          </div>
+        </div>
       </Card>
 
-      <TodoList />
+      <AITaskAssistant />
 
-      <TransactionCard />
+      <BlockchainWorkLogger />
     </div>
   );
 }
@@ -285,21 +331,32 @@ type Todo = {
   completed: boolean;
 }
 
-function TodoList() {
+function AITaskManager() {
   const [todos, setTodos] = useState<Todo[]>([
-    { id: 1, text: "Learn about MiniKit", completed: false },
-    { id: 2, text: "Build a Mini App", completed: true },
-    { id: 3, text: "Deploy to Base and go viral", completed: false },
+    { id: 1, text: "🧠 Configure AI meeting transcription", completed: false },
+    { id: 2, text: "⛓️ Verify team deliverable on-chain", completed: true },
+    { id: 3, text: "🤝 Setup cross-DAO collaboration", completed: false },
   ]);
   const [newTodo, setNewTodo] = useState("");
+  const [isAIProcessing, setIsAIProcessing] = useState(false);
 
   const addTodo = () => {
     if (newTodo.trim() === "") return;
-
-    const newId =
-      todos.length > 0 ? Math.max(...todos.map((t) => t.id)) + 1 : 1;
-    setTodos([...todos, { id: newId, text: newTodo, completed: false }]);
-    setNewTodo("");
+    
+    // Simulate AI processing
+    setIsAIProcessing(true);
+    
+    setTimeout(() => {
+      const newId =
+        todos.length > 0 ? Math.max(...todos.map((t) => t.id)) + 1 : 1;
+      
+      // AI-enhanced task with emojis and context
+      const aiEnhancedText = newTodo.startsWith('🤖') ? newTodo : `🤖 ${newTodo}`;
+      
+      setTodos([...todos, { id: newId, text: aiEnhancedText, completed: false }]);
+      setNewTodo("");
+      setIsAIProcessing(false);
+    }, 1000);
   };
 
   const toggleTodo = (id: number) => {
@@ -321,24 +378,39 @@ function TodoList() {
   };
 
   return (
-    <Card title="Get started">
-      <div className="space-y-4">
-        <div className="flex items-center space-x-2">
+    <Card title="🧠 AI Task Assistant">
+      <div className="space-y-5">
+        <div className="bg-gradient-to-r from-blue-50 to-purple-50 dark:from-blue-900/20 dark:to-purple-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
+          <div className="flex items-center space-x-2 mb-2">
+            <div className="w-2 h-2 bg-[var(--app-coral)] rounded-full animate-pulse"></div>
+            <span className="text-sm font-medium text-[var(--app-foreground)]">AI Assistant Active</span>
+          </div>
+          <p className="text-xs text-[var(--app-foreground-muted)]">
+            Automatic task generation • Meeting transcription • Priority optimization
+          </p>
+        </div>
+        
+        <div className="flex items-center space-x-3">
           <input
             type="text"
             value={newTodo}
             onChange={(e) => setNewTodo(e.target.value)}
             onKeyDown={handleKeyDown}
-            placeholder="Add a new task..."
-            className="flex-1 px-3 py-2 bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-lg text-[var(--app-foreground)] placeholder-[var(--app-foreground-muted)] focus:outline-none focus:ring-1 focus:ring-[var(--app-accent)]"
+            placeholder="Describe project, paste meeting notes, or voice command..."
+            disabled={isAIProcessing}
+            className="flex-1 neu-input text-[var(--app-foreground)] placeholder-[var(--app-foreground-muted)] disabled:opacity-50"
           />
           <Button
             variant="primary"
             size="md"
             onClick={addTodo}
-            icon={<Icon name="plus" size="sm" />}
+            disabled={isAIProcessing}
+            icon={isAIProcessing ? 
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> :
+              <Icon name="plus" size="sm" />
+            }
           >
-            Add
+            {isAIProcessing ? "Generating..." : "AI Generate"}
           </Button>
         </div>
 
@@ -387,10 +459,12 @@ function TodoList() {
 }
 
 
-function TransactionCard() {
+function BlockchainWorkLogger() {
   const { address } = useAccount();
+  const [workHours, setWorkHours] = useState(8.5);
+  const [tasksCompleted, setTasksCompleted] = useState(12);
 
-  // Example transaction call - sending 0 ETH to self
+  // Professional achievement transaction
   const calls = useMemo(() => address
     ? [
         {
@@ -406,29 +480,50 @@ function TransactionCard() {
   const handleSuccess = useCallback(async (response: TransactionResponse) => {
     const transactionHash = response.transactionReceipts[0].transactionHash;
 
-    console.log(`Transaction successful: ${transactionHash}`);
+    console.log(`Professional milestone verified: ${transactionHash}`);
 
     await sendNotification({
-      title: "Congratulations!",
-      body: `You sent your a transaction, ${transactionHash}!`,
+      title: "🏆 Professional Milestone Verified!",
+      body: `Your work achievement (${tasksCompleted} tasks, ${workHours}h) permanently recorded on Base blockchain`,
     });
-  }, [sendNotification]);
+  }, [sendNotification, tasksCompleted, workHours]);
 
   return (
-    <Card title="Make Your First Transaction">
-      <div className="space-y-4">
-        <p className="text-[var(--app-foreground-muted)] mb-4">
-          Experience the power of seamless sponsored transactions with{" "}
-          <a
-            href="https://onchainkit.xyz"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[#0052FF] hover:underline"
-          >
-            OnchainKit
-          </a>
-          .
-        </p>
+    <Card title="⛓️ Blockchain Workspace Logs">
+      <div className="space-y-5">
+        <div className="grid grid-cols-3 gap-3">
+          <div className="neu-card p-4 text-center">
+            <div className="text-2xl font-bold gradient-accent bg-clip-text text-transparent">{workHours}h</div>
+            <div className="text-xs text-[var(--app-foreground-muted)] mt-1">Hours Logged</div>
+            <div className="w-full bg-[var(--app-accent-light)] rounded-full h-1 mt-2">
+              <div className="gradient-accent h-1 rounded-full" style={{width: '85%'}}></div>
+            </div>
+          </div>
+          <div className="neu-card p-4 text-center">
+            <div className="text-2xl font-bold gradient-coral bg-clip-text text-transparent">{tasksCompleted}</div>
+            <div className="text-xs text-[var(--app-foreground-muted)] mt-1">Tasks Done</div>
+            <div className="w-full bg-[var(--app-accent-light)] rounded-full h-1 mt-2">
+              <div className="gradient-coral h-1 rounded-full" style={{width: '70%'}}></div>
+            </div>
+          </div>
+          <div className="neu-card p-4 text-center">
+            <div className="text-2xl font-bold gradient-mint bg-clip-text text-transparent">847</div>
+            <div className="text-xs text-[var(--app-foreground-muted)] mt-1">NFT Proofs</div>
+            <div className="w-full bg-[var(--app-accent-light)] rounded-full h-1 mt-2">
+              <div className="gradient-mint h-1 rounded-full" style={{width: '95%'}}></div>
+            </div>
+          </div>
+        </div>
+        
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
+          <div className="flex items-center space-x-2 mb-2">
+            <Icon name="check" className="text-green-500" />
+            <span className="text-sm font-medium text-[var(--app-foreground)]">Workspace Status: Verified</span>
+          </div>
+          <p className="text-xs text-[var(--app-foreground-muted)]">
+            All work contributions permanently recorded on Base • IP ownership secured
+          </p>
+        </div>
 
         <div className="flex flex-col items-center">
           {address ? (
@@ -451,9 +546,14 @@ function TransactionCard() {
               </TransactionToast>
             </Transaction>
           ) : (
-            <p className="text-yellow-400 text-sm text-center mt-2">
-              Connect your wallet to send a transaction
-            </p>
+            <div className="text-center p-4 bg-[var(--app-accent-light)] rounded-lg">
+              <p className="text-[var(--app-accent)] text-sm font-medium mb-2">
+                🔗 Connect Wallet to Start
+              </p>
+              <p className="text-[var(--app-foreground-muted)] text-xs">
+                Join 10,000+ professionals building verified career history on-chain
+              </p>
+            </div>
           )}
         </div>
       </div>

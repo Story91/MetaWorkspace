@@ -180,15 +180,6 @@ export function AITaskAssistant() {
   const { notification, userProfile, fetchUserProfile, context } = useMiniKitFeatures();
   const [isClientMounted, setIsClientMounted] = useState(false);
 
-  const getWelcomeMessage = () => {
-    const userName = userProfile ? 
-      (userProfile as { username?: string; displayName?: string }).username || 
-      (userProfile as { username?: string; displayName?: string }).displayName || 
-      'Developer' : 'Developer';
-    
-    return `Hi ${userName}! I'm your Base + Farcaster Mini Apps Expert. I have access to official documentation and specialize in:\n\n• Base Manifest (/.well-known/farcaster.json)\n• @farcaster/miniapp-sdk methods\n• Quick Auth & wallet signatures\n• Base App discovery & embeds\n\nHow can I help you build your Mini App?`;
-  };
-
   const getDefaultMessages = (): ChatMessage[] => [
     {
       id: 'default-welcome-message',
@@ -449,7 +440,7 @@ export function AITaskAssistant() {
               <Icon name="arrow-right" size="sm" />
             }
           >
-            {isProcessing ? 'Processing...' : 'Transact'}
+            {isProcessing ? 'Processing...' : 'Send'}
           </Button>
         </div>
 

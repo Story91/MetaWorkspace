@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback } from "react";
+import Image from 'next/image';
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
@@ -225,10 +226,12 @@ Join ${userName} and build the future of work! 🤖⛓️`,
               <span className="text-sm font-medium text-[var(--app-foreground)]">Team Invitation QR Code</span>
             </div>
             <div className="flex justify-center mb-3">
-              <img 
+              <Image 
                 src={qrCodeData} 
                 alt="Team Invitation QR Code" 
-                className="w-48 h-48 border-2 border-gray-300 rounded-lg bg-white shadow-md"
+                width={192}
+                height={192}
+                className="border-2 border-gray-300 rounded-lg bg-white shadow-md"
                 onError={(e) => {
                   // Fallback if image fails to load
                   (e.target as HTMLImageElement).style.display = 'none';

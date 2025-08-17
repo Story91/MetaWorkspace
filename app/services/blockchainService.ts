@@ -14,8 +14,8 @@ import {
   type PublicClient,
   type WalletClient
 } from 'viem';
-import { baseSepolia, base } from 'viem/chains';
-import { METAWORKSPACE_NFT_ABI, METAWORKSPACE_NFT_ADDRESS } from '../constants/contractABI';
+import { METAWORKSPACE_NFT_ABI } from '../constants/contractABI';
+import { getCurrentChainConfig } from '../config/chains';
 
 // Types
 export interface VoiceNFT {
@@ -61,14 +61,18 @@ export class BlockchainService {
   private publicClient: PublicClient;
   private walletClient: WalletClient | null = null;
   private account: Address | null = null;
-  private contractAddress: Address = METAWORKSPACE_NFT_ADDRESS;
-  private chain = process.env.NODE_ENV === 'production' ? base : baseSepolia;
+  private chainConfig = getCurrentChainConfig();
+  private contractAddress: Address = this.chainConfig.contractAddress;
+  private chain = this.chainConfig.chain;
   
   constructor() {
+    console.log(`🔗 BlockchainService initialized with ${this.chainConfig.name}`);
+    console.log(`📜 Contract address: ${this.contractAddress}`);
+    
     // Initialize public client for reading
     this.publicClient = createPublicClient({
       chain: this.chain,
-      transport: http()
+      transport: http(this.chainConfig.rpcUrl)
     }) as PublicClient;
   }
 

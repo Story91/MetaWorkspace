@@ -1,14 +1,16 @@
 "use client";
 
 import { type ReactNode } from "react";
-import { base } from "wagmi/chains";
 import { MiniKitProvider } from "@coinbase/onchainkit/minikit";
+import { getCurrentChainConfig } from "./config/chains";
 
 export function Providers(props: { children: ReactNode }) {
+  const chainConfig = getCurrentChainConfig();
+  
   return (
     <MiniKitProvider
       apiKey={process.env.NEXT_PUBLIC_ONCHAINKIT_API_KEY}
-      chain={base}
+      chain={chainConfig.chain}
       config={{
         appearance: {
           mode: "auto",

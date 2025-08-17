@@ -77,15 +77,15 @@ export default function App() {
     console.log('isFrameReady:', isFrameReady);
     console.log('context:', context);
     
-    // Instead of using viewProfile (which opens external app),
-    // switch to social tab to show profile on our main page
-    setActiveTab("social");
-    
     try {
+      // Try to open external Farcaster profile 
       viewProfile();
-      console.log('viewProfile() called successfully');
+      console.log('viewProfile() called successfully - opening external profile');
     } catch (error) {
       console.error('Error calling viewProfile:', error);
+      // Fallback: switch to social tab if external profile fails
+      console.log('Fallback: switching to social tab');
+      setActiveTab("social");
     }
   }, [viewProfile, isFrameReady, context, setActiveTab]);
 

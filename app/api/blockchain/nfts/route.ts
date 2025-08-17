@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, Address } from 'viem';
-import { base, baseSepolia } from 'viem/chains';
 
 // MetaWorkspace NFT unified contract ABI
 const METAWORKSPACE_NFT_ABI = [
@@ -106,14 +105,8 @@ const METAWORKSPACE_NFT_ABI = [
   }
 ] as const;
 
-// Get the appropriate chain and RPC URL
-const getChainConfig = () => {
-  const isMainnet = process.env.NODE_ENV === 'production';
-  return {
-    chain: isMainnet ? base : baseSepolia,
-    rpcUrl: process.env.NEXT_PUBLIC_RPC_URL || (isMainnet ? 'https://mainnet.base.org' : 'https://sepolia.base.org')
-  };
-};
+// Import the chain configuration utility
+import { getCurrentChainConfig } from '../../../config/chains';
 
 export async function GET(request: NextRequest) {
   try {
@@ -130,29 +123,22 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Using single unified NFT contract
-    const nftAddress = process.env.NEXT_PUBLIC_METAWORKSPACE_NFT_ADDRESS as Address;
-    
-    if (!nftAddress) {
-      return NextResponse.json(
-        { error: 'MetaWorkspace NFT contract not deployed' },
-        { status: 500 }
-      );
-    }
-
-    const { chain, rpcUrl } = getChainConfig();
+    // Using single unified NFT contract with dynamic configuration
+    const chainConfig = getCurrentChainConfig();
+    const nftAddress = chainConfig.contractAddress;
 
     // Create public client for reading from blockchain
     const publicClient = createPublicClient({
-      chain,
-      transport: http(rpcUrl)
+      chain: chainConfig.chain,
+      transport: http(chainConfig.rpcUrl)
     });
 
     console.log('Querying NFTs from blockchain:', { 
       roomId, 
       type, 
       tokenId,
-      nftAddress 
+      nftAddress,
+      network: chainConfig.name
     });
 
     // Get specific NFT by token ID
@@ -415,7 +401,7 @@ export async function GET(request: NextRequest) {
       videoCount: results.filter(nft => nft.type === 'video').length,
       roomId,
       userFilter: userFarcaster || null,
-      chainId: chain.id
+      chainId: chainConfig.chain.id
     });
 
   } catch (error) {
@@ -453,15 +439,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Using single unified NFT contract
-    const contractAddress = process.env.NEXT_PUBLIC_METAWORKSPACE_NFT_ADDRESS as Address;
-    
-    if (!contractAddress) {
-      return NextResponse.json(
-        { error: 'MetaWorkspace NFT contract not deployed' },
-        { status: 500 }
-      );
-    }
+    // Using single unified NFT contract with dynamic configuration
+    const chainConfig = getCurrentChainConfig();
+    const contractAddress = chainConfig.contractAddress;
 
     // Return transaction data for frontend to execute
     const transactionData = {

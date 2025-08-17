@@ -325,11 +325,12 @@ export function Icon({ name, size = "md", className = "" }: IconProps) {
   );
 }
 
-type Todo = {
-  id: number;
-  text: string;
-  completed: boolean;
-}
+// Type Todo removed - replaced by AITaskAssistant
+// type Todo = {
+//   id: number;
+//   text: string;
+//   completed: boolean;
+// }
 
 // AITaskManager function removed - replaced by AITaskAssistant component
 

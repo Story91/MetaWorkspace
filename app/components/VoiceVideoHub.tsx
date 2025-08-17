@@ -94,7 +94,7 @@ export function VoiceVideoHub() {
 
   const setupAudioAnalyzer = useCallback((mediaStream: MediaStream): void => {
     try {
-      audioContext.current = new (window.AudioContext || (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext)();
+      audioContext.current = new (window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext)();
       analyser.current = audioContext.current.createAnalyser();
       const source = audioContext.current.createMediaStreamSource(mediaStream);
       source.connect(analyser.current);
@@ -260,7 +260,7 @@ export function VoiceVideoHub() {
         }
       }, 1500);
     }
-  }, [notification, recordingDuration, currentRoomId]);
+  }, [notification, recordingDuration, currentRoomId, recordedBlob]);
 
   const handleJoinVideoCall = useCallback(async (meetingId: number) => {
     const meeting = videoMeetings.find(m => m.id === meetingId);

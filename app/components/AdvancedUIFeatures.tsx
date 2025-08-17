@@ -137,7 +137,7 @@ export function AdvancedUIFeatures() {
         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
           <div className="flex items-center space-x-2 mb-4">
             <Icon name="star" className="text-indigo-500" />
-            <span className="text-sm font-medium text-[var(--app-foreground)]">Today's Productivity</span>
+            <span className="text-sm font-medium text-[var(--app-foreground)]">Today&apos;s Productivity</span>
           </div>
 
           <div className="grid grid-cols-3 gap-3 mb-4">

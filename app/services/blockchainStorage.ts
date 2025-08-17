@@ -6,12 +6,13 @@
  * - Video meetings as NFTs
  * - Farcaster user whitelists
  * - Room-based access control
- * - IPFS integration for media files
+ * - Real IPFS integration for media files
  */
 
 import { type PublicClient, type WalletClient } from 'viem';
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 import { base } from 'viem/chains';
+import { ipfsStorage, type IPFSMetadata } from './ipfsStorage';
 
 // Types for our blockchain storage system
 export interface VoiceNFT {
@@ -138,24 +139,29 @@ export class BlockchainStorageService {
   }
 
   /**
-   * Upload media to IPFS
+   * Upload media to IPFS using real Pinata service
    */
   async uploadToIPFS(file: Blob, metadata: Record<string, unknown>): Promise<IPFSUploadResult> {
     try {
-      // In production, this would use a service like Pinata, Web3.Storage, or own IPFS node
-      const formData = new FormData();
-      formData.append('file', file);
-      formData.append('metadata', JSON.stringify(metadata));
+      // Convert metadata to IPFS format
+      const ipfsMetadata: IPFSMetadata = {
+        type: metadata.type as 'voice-recording' | 'video-meeting' | 'document' | 'other' || 'other',
+        roomId: metadata.roomId as string,
+        creator: metadata.creator as string,
+        duration: metadata.duration as number,
+        transcription: metadata.transcription as string,
+        participants: metadata.participants as string[],
+        summary: metadata.summary as string,
+        name: metadata.name as string || `metaworkspace-${Date.now()}`
+      };
 
-      // Mock IPFS upload for demo
-      await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate upload time
-      
-      const mockHash = `Qm${Math.random().toString(36).substring(2, 48)}`;
+      // Use real IPFS service
+      const result = await ipfsStorage.uploadFile(file, ipfsMetadata);
       
       return {
-        hash: mockHash,
-        url: `https://ipfs.io/ipfs/${mockHash}`,
-        size: file.size
+        hash: result.hash,
+        url: result.url,
+        size: result.size
       };
     } catch (error) {
       throw new Error(`IPFS upload failed: ${error}`);

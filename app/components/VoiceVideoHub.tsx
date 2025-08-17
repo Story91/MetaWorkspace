@@ -7,10 +7,16 @@ import { Icon } from "./DemoComponents";
 import { blockchainStorage, type VoiceNFT } from "../services/blockchainStorage";
 
 // RecordRTC types
+interface RecordRTCInstance {
+  startRecording(): void;
+  stopRecording(callback: () => void): void;
+  getBlob(): Blob;
+}
+
 declare global {
   interface Window {
     RecordRTC: {
-      new (stream: MediaStream, options: unknown): unknown;
+      new (stream: MediaStream, options: unknown): RecordRTCInstance;
       StereoAudioRecorder: unknown;
     };
   }
@@ -60,7 +66,7 @@ export function VoiceVideoHub() {
   const [audioLevel, setAudioLevel] = useState(0);
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const recordingInterval = useRef<NodeJS.Timeout | null>(null);
-  const recorder = useRef<any>(null);
+  const recorder = useRef<RecordRTCInstance | null>(null);
   const stream = useRef<MediaStream | null>(null);
   const audioContext = useRef<AudioContext | null>(null);
   const analyser = useRef<AnalyserNode | null>(null);
@@ -148,7 +154,7 @@ export function VoiceVideoHub() {
 
       // Initialize RecordRTC when library is loaded
       if (window.RecordRTC) {
-        recorder.current = new (window.RecordRTC as { new (stream: MediaStream, options: unknown): unknown })(stream.current, {
+        recorder.current = new (window.RecordRTC as { new (stream: MediaStream, options: unknown): RecordRTCInstance })(stream.current, {
           type: 'audio',
           mimeType: 'audio/wav',
           recorderType: window.RecordRTC.StereoAudioRecorder,
@@ -160,7 +166,7 @@ export function VoiceVideoHub() {
           }
         });
         
-        recorder.current.startRecording();
+        recorder.current?.startRecording();
       }
 
       // Start duration timer
@@ -169,7 +175,10 @@ export function VoiceVideoHub() {
           const newDuration = prev + 1;
           // Auto-stop at 30 seconds max
           if (newDuration >= 30) {
-            handleStopVoiceRecording();
+            setIsRecordingVoice(false);
+            if (recordingInterval.current) {
+              clearInterval(recordingInterval.current);
+            }
           }
           return newDuration;
         });
@@ -183,9 +192,8 @@ export function VoiceVideoHub() {
       });
       setIsRecordingVoice(false);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [notification, setupAudioAnalyzer]);
-  
-  // Silence the dependency warning - handleStopVoiceRecording is defined in the same component
 
   const handleStopVoiceRecording = useCallback(async () => {
     setIsRecordingVoice(false);
@@ -201,7 +209,7 @@ export function VoiceVideoHub() {
     // Stop recording and get blob
     if (recorder.current && window.RecordRTC) {
       recorder.current.stopRecording(() => {
-        const blob = recorder.current.getBlob();
+        const blob = recorder.current!.getBlob();
         setRecordedBlob(blob);
         console.log('Recording complete, blob size:', blob.size);
         

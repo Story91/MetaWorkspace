@@ -17,18 +17,41 @@ export function useMiniKitFeatures() {
   const openUrl = useOpenUrl();
   const notification = useNotification();
   
-  // Simulated features for future implementation
-  const [mockSocialData] = useState({
-    following: Array.from({length: 47}, (_, i) => ({ id: i, username: `user${i}` })),
-    followers: Array.from({length: 123}, (_, i) => ({ id: i, username: `follower${i}` }))
-  });
-  
-  const [mockUserProfile] = useState({
-    username: "metaworkspace.eth",
-    displayName: "MetaWorkspace User",
-    bio: "Building the future of work",
-    pfpUrl: "/api/placeholder-avatar"
-  });
+  // Real API data state
+  const [socialData, setSocialData] = useState<any>(null);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(false);
+
+  // Real API functions
+  const fetchUserProfile = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/farcaster/profile');
+      if (response.ok) {
+        const data = await response.json();
+        setUserProfile(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch user profile:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  const fetchSocialGraph = useCallback(async () => {
+    try {
+      setIsLoading(true);
+      const response = await fetch('/api/farcaster/social-graph');
+      if (response.ok) {
+        const data = await response.json();
+        setSocialData(data);
+      }
+    } catch (error) {
+      console.error('Failed to fetch social graph:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
 
   // Mock implementations for advanced features
   const mockViewCast = useCallback(async (params: { castHash: string }) => {
@@ -38,7 +61,6 @@ export function useMiniKitFeatures() {
   }, []);
 
   const mockSignMessage = useCallback(async (params: { message: string }) => {
-    console.log("Mock signMessage:", params);
     // Future: Real message signing with wallet
     return `signed_${Date.now()}`;
   }, []);
@@ -68,9 +90,14 @@ export function useMiniKitFeatures() {
     openUrl,
     notification,
     
+    // Real API data and functions
+    socialGraph: socialData,
+    userProfile: userProfile,
+    fetchUserProfile,
+    fetchSocialGraph,
+    isLoading,
+    
     // Mock implementations (ready for real implementation)
-    socialGraph: mockSocialData,
-    userProfile: mockUserProfile,
     viewCast: mockViewCast,
     signMessage: mockSignMessage,
     generateQR: mockGenerateQR,
@@ -80,7 +107,7 @@ export function useMiniKitFeatures() {
     isAvailable: {
       notifications: true,
       frames: true,
-      socialGraph: false, // Mock until available
+      socialGraph: true, // Now using real API
       messageSign: false, // Mock until available
       qrGeneration: false, // Mock until available
       urlSharing: true // Partial support

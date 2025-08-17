@@ -46,40 +46,19 @@ export function RoomManager() {
   useEffect(() => {
     const loadRooms = async () => {
       try {
-        // In production, this would fetch from blockchain
-        const mockRooms: WorkspaceRoom[] = [
-          {
-            roomId: "metaworkspace-main-room",
-            name: "Main Workspace",
-            creator: "0x1234567890123456789012345678901234567890",
-            farcasterWhitelist: ["alice.eth", "bob.eth", "carol.eth", "metaworkspace.eth"],
-            isPublic: false,
-            createdAt: Date.now() - 86400000,
-            settings: {
-              maxRecordingDuration: 30,
-              allowVoiceNFTs: true,
-              allowVideoNFTs: true,
-              requireWhitelist: true
-            }
-          },
-          {
-            roomId: "public-demo-room",
-            name: "Public Demo Room",
-            creator: "0x2345678901234567890123456789012345678901",
-            farcasterWhitelist: [],
-            isPublic: true,
-            createdAt: Date.now() - 3600000,
-            settings: {
-              maxRecordingDuration: 15,
-              allowVoiceNFTs: true,
-              allowVideoNFTs: false,
-              requireWhitelist: false
-            }
-          }
-        ];
-        setRooms(mockRooms);
+        // Fetch real rooms from blockchain API
+        const response = await fetch('/api/blockchain/rooms');
+        if (response.ok) {
+          const data = await response.json();
+          setRooms(data.rooms || []);
+        } else {
+          console.error('Failed to fetch rooms from API');
+          // Fallback to empty array
+          setRooms([]);
+        }
       } catch (error) {
         console.error('Failed to load rooms:', error);
+        setRooms([]);
       }
     };
 

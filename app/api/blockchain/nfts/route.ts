@@ -2,10 +2,46 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, Address } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
 
-// Smart contract ABIs
-const VOICE_NFT_ABI = [
+// MetaWorkspace NFT unified contract ABI
+const METAWORKSPACE_NFT_ABI = [
+  {
+    name: 'mintVoiceNFT',
+    type: 'function',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'ipfsHash', type: 'string' },
+      { name: 'duration', type: 'uint256' },
+      { name: 'roomId', type: 'string' },
+      { name: 'whitelistedUsers', type: 'string[]' },
+      { name: 'transcription', type: 'string' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable'
+  },
+  {
+    name: 'mintVideoNFT',
+    type: 'function',
+    inputs: [
+      { name: 'to', type: 'address' },
+      { name: 'ipfsHash', type: 'string' },
+      { name: 'duration', type: 'uint256' },
+      { name: 'roomId', type: 'string' },
+      { name: 'participants', type: 'string[]' },
+      { name: 'summary', type: 'string' },
+      { name: 'whitelistedUsers', type: 'string[]' }
+    ],
+    outputs: [{ name: '', type: 'uint256' }],
+    stateMutability: 'nonpayable'
+  },
   {
     name: 'getVoiceNFTsByRoom',
+    type: 'function',
+    inputs: [{ name: 'roomId', type: 'string' }],
+    outputs: [{ name: '', type: 'uint256[]' }],
+    stateMutability: 'view'
+  },
+  {
+    name: 'getVideoNFTsByRoom',
     type: 'function',
     inputs: [{ name: 'roomId', type: 'string' }],
     outputs: [{ name: '', type: 'uint256[]' }],
@@ -15,66 +51,33 @@ const VOICE_NFT_ABI = [
     name: 'getVoiceNFT',
     type: 'function',
     inputs: [{ name: 'tokenId', type: 'uint256' }],
-    outputs: [{
-      type: 'tuple',
-      components: [
-        { name: 'ipfsHash', type: 'string' },
-        { name: 'duration', type: 'uint256' },
-        { name: 'roomId', type: 'string' },
-        { name: 'creator', type: 'address' },
-        { name: 'timestamp', type: 'uint256' },
-        { name: 'isPrivate', type: 'bool' },
-        { name: 'whitelistedUsers', type: 'string[]' },
-        { name: 'transcription', type: 'string' }
-      ]
-    }],
-    stateMutability: 'view'
-  },
-  {
-    name: 'hasAccess',
-    type: 'function',
-    inputs: [
-      { name: 'tokenId', type: 'uint256' },
-      { name: 'username', type: 'string' }
+    outputs: [
+      { name: 'ipfsHash', type: 'string' },
+      { name: 'duration', type: 'uint256' },
+      { name: 'roomId', type: 'string' },
+      { name: 'creator', type: 'address' },
+      { name: 'timestamp', type: 'uint256' },
+      { name: 'isPrivate', type: 'bool' },
+      { name: 'whitelistedUsers', type: 'string[]' },
+      { name: 'transcription', type: 'string' }
     ],
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view'
-  },
-  {
-    name: 'ownerOf',
-    type: 'function',
-    inputs: [{ name: 'tokenId', type: 'uint256' }],
-    outputs: [{ name: '', type: 'address' }],
-    stateMutability: 'view'
-  }
-] as const;
-
-const VIDEO_NFT_ABI = [
-  {
-    name: 'getVideoNFTsByRoom',
-    type: 'function',
-    inputs: [{ name: 'roomId', type: 'string' }],
-    outputs: [{ name: '', type: 'uint256[]' }],
     stateMutability: 'view'
   },
   {
     name: 'getVideoNFT',
     type: 'function',
     inputs: [{ name: 'tokenId', type: 'uint256' }],
-    outputs: [{
-      type: 'tuple',
-      components: [
-        { name: 'ipfsHash', type: 'string' },
-        { name: 'duration', type: 'uint256' },
-        { name: 'roomId', type: 'string' },
-        { name: 'creator', type: 'address' },
-        { name: 'participants', type: 'string[]' },
-        { name: 'summary', type: 'string' },
-        { name: 'timestamp', type: 'uint256' },
-        { name: 'isPrivate', type: 'bool' },
-        { name: 'whitelistedUsers', type: 'string[]' }
-      ]
-    }],
+    outputs: [
+      { name: 'ipfsHash', type: 'string' },
+      { name: 'duration', type: 'uint256' },
+      { name: 'roomId', type: 'string' },
+      { name: 'creator', type: 'address' },
+      { name: 'participants', type: 'string[]' },
+      { name: 'summary', type: 'string' },
+      { name: 'timestamp', type: 'uint256' },
+      { name: 'isPrivate', type: 'bool' },
+      { name: 'whitelistedUsers', type: 'string[]' }
+    ],
     stateMutability: 'view'
   },
   {
@@ -92,6 +95,13 @@ const VIDEO_NFT_ABI = [
     type: 'function',
     inputs: [{ name: 'tokenId', type: 'uint256' }],
     outputs: [{ name: '', type: 'address' }],
+    stateMutability: 'view'
+  },
+  {
+    name: 'getContentType',
+    type: 'function',
+    inputs: [{ name: 'tokenId', type: 'uint256' }],
+    outputs: [{ name: '', type: 'uint8' }],
     stateMutability: 'view'
   }
 ] as const;
@@ -120,12 +130,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    const voiceNFTAddress = process.env.NEXT_PUBLIC_VOICE_NFT_ADDRESS as Address;
-    const videoNFTAddress = process.env.NEXT_PUBLIC_VIDEO_NFT_ADDRESS as Address;
+    // Using single unified NFT contract
+    const nftAddress = process.env.NEXT_PUBLIC_METAWORKSPACE_NFT_ADDRESS as Address;
     
-    if (!voiceNFTAddress || !videoNFTAddress) {
+    if (!nftAddress) {
       return NextResponse.json(
-        { error: 'NFT contracts not deployed' },
+        { error: 'MetaWorkspace NFT contract not deployed' },
         { status: 500 }
       );
     }
@@ -142,157 +152,52 @@ export async function GET(request: NextRequest) {
       roomId, 
       type, 
       tokenId,
-      voiceNFTAddress, 
-      videoNFTAddress 
+      nftAddress 
     });
 
     // Get specific NFT by token ID
     if (tokenId) {
       const tokenIdNum = BigInt(tokenId);
-      let nftData = null;
-      let nftType = '';
-
+      
       try {
-        // Try voice NFT first
-        const voiceData = await publicClient.readContract({
-          address: voiceNFTAddress,
-          abi: VOICE_NFT_ABI,
-          functionName: 'getVoiceNFT',
+        // Get content type first
+        const contentType = await publicClient.readContract({
+          address: nftAddress,
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'getContentType',
           args: [tokenIdNum]
         });
 
         const owner = await publicClient.readContract({
-          address: voiceNFTAddress,
-          abi: VOICE_NFT_ABI,
+          address: nftAddress,
+          abi: METAWORKSPACE_NFT_ABI,
           functionName: 'ownerOf',
           args: [tokenIdNum]
         });
 
         let hasAccess = true;
-        if (userFarcaster && voiceData[5]) { // isPrivate
+        if (userFarcaster) {
           hasAccess = await publicClient.readContract({
-            address: voiceNFTAddress,
-            abi: VOICE_NFT_ABI,
+            address: nftAddress,
+            abi: METAWORKSPACE_NFT_ABI,
             functionName: 'hasAccess',
             args: [tokenIdNum, userFarcaster]
           });
         }
 
-        nftData = {
-          tokenId,
-          type: 'voice',
-          ipfsHash: voiceData[0],
-          duration: Number(voiceData[1]),
-          roomId: voiceData[2],
-          creator: voiceData[3],
-          timestamp: Number(voiceData[4]),
-          isPrivate: voiceData[5],
-          whitelistedUsers: voiceData[6],
-          transcription: voiceData[7],
-          owner,
-          hasAccess
-        };
-        nftType = 'voice';
-      } catch {
-        // Try video NFT
-        try {
-          const videoData = await publicClient.readContract({
-            address: videoNFTAddress,
-            abi: VIDEO_NFT_ABI,
-            functionName: 'getVideoNFT',
+        // 0 = VOICE, 1 = VIDEO, 2 = DOCUMENT
+        if (contentType === 0) {
+          const voiceData = await publicClient.readContract({
+            address: nftAddress,
+            abi: METAWORKSPACE_NFT_ABI,
+            functionName: 'getVoiceNFT',
             args: [tokenIdNum]
           });
 
-          const owner = await publicClient.readContract({
-            address: videoNFTAddress,
-            abi: VIDEO_NFT_ABI,
-            functionName: 'ownerOf',
-            args: [tokenIdNum]
-          });
-
-          let hasAccess = true;
-          if (userFarcaster && videoData[7]) { // isPrivate
-            hasAccess = await publicClient.readContract({
-              address: videoNFTAddress,
-              abi: VIDEO_NFT_ABI,
-              functionName: 'hasAccess',
-              args: [tokenIdNum, userFarcaster]
-            });
-          }
-
-          nftData = {
-            tokenId,
-            type: 'video',
-            ipfsHash: videoData[0],
-            duration: Number(videoData[1]),
-            roomId: videoData[2],
-            creator: videoData[3],
-            participants: videoData[4],
-            summary: videoData[5],
-            timestamp: Number(videoData[6]),
-            isPrivate: videoData[7],
-            whitelistedUsers: videoData[8],
-            owner,
-            hasAccess
-          };
-          nftType = 'video';
-        } catch {
-          return NextResponse.json(
-            { error: 'NFT not found' },
-            { status: 404 }
-          );
-        }
-      }
-
-      return NextResponse.json({
-        success: true,
-        nft: nftData,
-        type: nftType
-      });
-    }
-
-    // Get NFTs by room
-    const results: any[] = [];
-
-    if (type === 'all' || type === 'voice') {
-      try {
-        const voiceTokenIds = await publicClient.readContract({
-          address: voiceNFTAddress,
-          abi: VOICE_NFT_ABI,
-          functionName: 'getVoiceNFTsByRoom',
-          args: [roomId!]
-        });
-
-        console.log(`Found ${voiceTokenIds.length} voice NFTs for room ${roomId}`);
-
-        const voiceNFTs = await Promise.allSettled(
-          voiceTokenIds.map(async (tokenId) => {
-            const voiceData = await publicClient.readContract({
-              address: voiceNFTAddress,
-              abi: VOICE_NFT_ABI,
-              functionName: 'getVoiceNFT',
-              args: [tokenId]
-            });
-
-            const owner = await publicClient.readContract({
-              address: voiceNFTAddress,
-              abi: VOICE_NFT_ABI,
-              functionName: 'ownerOf',
-              args: [tokenId]
-            });
-
-            let hasAccess = true;
-            if (userFarcaster && voiceData[5]) { // isPrivate
-              hasAccess = await publicClient.readContract({
-                address: voiceNFTAddress,
-                abi: VOICE_NFT_ABI,
-                functionName: 'hasAccess',
-                args: [tokenId, userFarcaster]
-              });
-            }
-
-            return {
-              tokenId: tokenId.toString(),
+          return NextResponse.json({
+            success: true,
+            nft: {
+              tokenId,
               type: 'voice',
               ipfsHash: voiceData[0],
               duration: Number(voiceData[1]),
@@ -304,60 +209,21 @@ export async function GET(request: NextRequest) {
               transcription: voiceData[7],
               owner,
               hasAccess
-            };
-          })
-        );
+            },
+            type: 'voice'
+          });
+        } else if (contentType === 1) {
+          const videoData = await publicClient.readContract({
+            address: nftAddress,
+            abi: METAWORKSPACE_NFT_ABI,
+            functionName: 'getVideoNFT',
+            args: [tokenIdNum]
+          });
 
-        const successfulVoiceNFTs = voiceNFTs
-          .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-          .map(result => result.value)
-          .filter(nft => !userFarcaster || nft.hasAccess);
-
-        results.push(...successfulVoiceNFTs);
-      } catch (error) {
-        console.error('Error fetching voice NFTs:', error);
-      }
-    }
-
-    if (type === 'all' || type === 'video') {
-      try {
-        const videoTokenIds = await publicClient.readContract({
-          address: videoNFTAddress,
-          abi: VIDEO_NFT_ABI,
-          functionName: 'getVideoNFTsByRoom',
-          args: [roomId!]
-        });
-
-        console.log(`Found ${videoTokenIds.length} video NFTs for room ${roomId}`);
-
-        const videoNFTs = await Promise.allSettled(
-          videoTokenIds.map(async (tokenId) => {
-            const videoData = await publicClient.readContract({
-              address: videoNFTAddress,
-              abi: VIDEO_NFT_ABI,
-              functionName: 'getVideoNFT',
-              args: [tokenId]
-            });
-
-            const owner = await publicClient.readContract({
-              address: videoNFTAddress,
-              abi: VIDEO_NFT_ABI,
-              functionName: 'ownerOf',
-              args: [tokenId]
-            });
-
-            let hasAccess = true;
-            if (userFarcaster && videoData[7]) { // isPrivate
-              hasAccess = await publicClient.readContract({
-                address: videoNFTAddress,
-                abi: VIDEO_NFT_ABI,
-                functionName: 'hasAccess',
-                args: [tokenId, userFarcaster]
-              });
-            }
-
-            return {
-              tokenId: tokenId.toString(),
+          return NextResponse.json({
+            success: true,
+            nft: {
+              tokenId,
               type: 'video',
               ipfsHash: videoData[0],
               duration: Number(videoData[1]),
@@ -370,16 +236,169 @@ export async function GET(request: NextRequest) {
               whitelistedUsers: videoData[8],
               owner,
               hasAccess
-            };
-          })
+            },
+            type: 'video'
+          });
+        }
+      } catch {
+        return NextResponse.json(
+          { error: 'NFT not found' },
+          { status: 404 }
         );
+      }
+    }
 
-        const successfulVideoNFTs = videoNFTs
-          .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
-          .map(result => result.value)
-          .filter(nft => !userFarcaster || nft.hasAccess);
+    // Get NFTs by room
+    interface NFTResult {
+      tokenId: string;
+      type: 'voice' | 'video';
+      ipfsHash: string;
+      duration: number;
+      roomId: string;
+      creator: Address;
+      timestamp: number;
+      isPrivate: boolean;
+      whitelistedUsers: readonly string[];
+      transcription: string;
+      participants: readonly string[];
+      summary: string;
+      owner: Address;
+      hasAccess: boolean;
+    }
+    
+    const results: NFTResult[] = [];
 
-        results.push(...successfulVideoNFTs);
+    if (type === 'all' || type === 'voice') {
+      try {
+        const voiceTokenIds = await publicClient.readContract({
+          address: nftAddress,
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'getVoiceNFTsByRoom',
+          args: [roomId!]
+        });
+
+        console.log(`Found ${voiceTokenIds.length} voice NFTs for room ${roomId}`);
+
+        const voiceNFTs: NFTResult[] = [];
+        
+        for (const tokenId of voiceTokenIds) {
+          try {
+            const voiceData = await publicClient.readContract({
+              address: nftAddress,
+              abi: METAWORKSPACE_NFT_ABI,
+              functionName: 'getVoiceNFT',
+              args: [tokenId]
+            });
+
+            const owner = await publicClient.readContract({
+              address: nftAddress,
+              abi: METAWORKSPACE_NFT_ABI,
+              functionName: 'ownerOf',
+              args: [tokenId]
+            });
+
+            let hasAccess = true;
+            if (userFarcaster && voiceData[5]) { // isPrivate
+              hasAccess = await publicClient.readContract({
+                address: nftAddress,
+                abi: METAWORKSPACE_NFT_ABI,
+                functionName: 'hasAccess',
+                args: [tokenId, userFarcaster]
+              });
+            }
+
+            if (!userFarcaster || hasAccess) {
+              voiceNFTs.push({
+                tokenId: tokenId.toString(),
+                type: 'voice',
+                ipfsHash: voiceData[0],
+                duration: Number(voiceData[1]),
+                roomId: voiceData[2],
+                creator: voiceData[3],
+                timestamp: Number(voiceData[4]),
+                isPrivate: voiceData[5],
+                whitelistedUsers: voiceData[6],
+                transcription: voiceData[7] || '',
+                participants: [],
+                summary: '',
+                owner,
+                hasAccess
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching voice NFT ${tokenId}:`, error);
+          }
+        }
+
+        results.push(...voiceNFTs);
+      } catch (error) {
+        console.error('Error fetching voice NFTs:', error);
+      }
+    }
+
+    if (type === 'all' || type === 'video') {
+      try {
+        const videoTokenIds = await publicClient.readContract({
+          address: nftAddress,
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'getVideoNFTsByRoom',
+          args: [roomId!]
+        });
+
+        console.log(`Found ${videoTokenIds.length} video NFTs for room ${roomId}`);
+
+        const videoNFTs: NFTResult[] = [];
+        
+        for (const tokenId of videoTokenIds) {
+          try {
+            const videoData = await publicClient.readContract({
+              address: nftAddress,
+              abi: METAWORKSPACE_NFT_ABI,
+              functionName: 'getVideoNFT',
+              args: [tokenId]
+            });
+
+            const owner = await publicClient.readContract({
+              address: nftAddress,
+              abi: METAWORKSPACE_NFT_ABI,
+              functionName: 'ownerOf',
+              args: [tokenId]
+            });
+
+            let hasAccess = true;
+            if (userFarcaster && videoData[7]) { // isPrivate
+              hasAccess = await publicClient.readContract({
+                address: nftAddress,
+                abi: METAWORKSPACE_NFT_ABI,
+                functionName: 'hasAccess',
+                args: [tokenId, userFarcaster]
+              });
+            }
+
+            if (!userFarcaster || hasAccess) {
+              videoNFTs.push({
+                tokenId: tokenId.toString(),
+                type: 'video',
+                ipfsHash: videoData[0],
+                duration: Number(videoData[1]),
+                roomId: videoData[2],
+                creator: videoData[3],
+                participants: videoData[4] || [],
+                summary: videoData[5] || '',
+                timestamp: Number(videoData[6]),
+                isPrivate: videoData[7],
+                whitelistedUsers: videoData[8],
+                transcription: '',
+                owner,
+                hasAccess
+              });
+            }
+          } catch (error) {
+            console.error(`Error fetching video NFT ${tokenId}:`, error);
+          }
+        }
+
+        results.push(...videoNFTs);
       } catch (error) {
         console.error('Error fetching video NFTs:', error);
       }
@@ -434,13 +453,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const contractAddress = type === 'voice' 
-      ? process.env.NEXT_PUBLIC_VOICE_NFT_ADDRESS as Address
-      : process.env.NEXT_PUBLIC_VIDEO_NFT_ADDRESS as Address;
+    // Using single unified NFT contract
+    const contractAddress = process.env.NEXT_PUBLIC_METAWORKSPACE_NFT_ADDRESS as Address;
     
     if (!contractAddress) {
       return NextResponse.json(
-        { error: `${type} NFT contract not deployed` },
+        { error: 'MetaWorkspace NFT contract not deployed' },
         { status: 500 }
       );
     }
@@ -467,7 +485,7 @@ export async function POST(request: NextRequest) {
             summary || '',
             whitelistedUsers || []
           ],
-      abi: type === 'voice' ? VOICE_NFT_ABI : VIDEO_NFT_ABI
+      abi: METAWORKSPACE_NFT_ABI
     };
 
     return NextResponse.json({

@@ -11,78 +11,42 @@ async function main() {
   const balance = await ethers.provider.getBalance(deployer.address);
   console.log("💰 Account balance:", ethers.formatEther(balance), "ETH");
 
-  // Deploy RoomManager contract
-  console.log("\n📋 Deploying RoomManager...");
-  const RoomManager = await ethers.getContractFactory("RoomManager");
-  const roomManager = await RoomManager.deploy();
-  await roomManager.waitForDeployment();
-  const roomManagerAddress = await roomManager.getAddress();
-  console.log("✅ RoomManager deployed to:", roomManagerAddress);
-
-  // Deploy VoiceNFT contract
-  console.log("\n🎤 Deploying VoiceNFT...");
-  const VoiceNFT = await ethers.getContractFactory("VoiceNFT");
-  const voiceNFT = await VoiceNFT.deploy();
-  await voiceNFT.waitForDeployment();
-  const voiceNFTAddress = await voiceNFT.getAddress();
-  console.log("✅ VoiceNFT deployed to:", voiceNFTAddress);
-
-  // Deploy VideoNFT contract
-  console.log("\n🎥 Deploying VideoNFT...");
-  const VideoNFT = await ethers.getContractFactory("VideoNFT");
-  const videoNFT = await VideoNFT.deploy();
-  await videoNFT.waitForDeployment();
-  const videoNFTAddress = await videoNFT.getAddress();
-  console.log("✅ VideoNFT deployed to:", videoNFTAddress);
+  // Deploy MetaWorkspaceNFT contract (universal for all content)
+  console.log("\n🎯 Deploying MetaWorkspaceNFT (Universal Content Contract)...");
+  const MetaWorkspaceNFT = await ethers.getContractFactory("MetaWorkspaceNFT");
+  const metaWorkspaceNFT = await MetaWorkspaceNFT.deploy();
+  await metaWorkspaceNFT.waitForDeployment();
+  const nftAddress = await metaWorkspaceNFT.getAddress();
+  console.log("✅ MetaWorkspaceNFT deployed to:", nftAddress);
 
   // Display deployment summary
   console.log("\n🎉 Deployment completed successfully!");
   console.log("=" .repeat(50));
-  console.log("📋 RoomManager:", roomManagerAddress);
-  console.log("🎤 VoiceNFT:   ", voiceNFTAddress);
-  console.log("🎥 VideoNFT:   ", videoNFTAddress);
+  console.log("🎯 MetaWorkspaceNFT:", nftAddress);
   console.log("=" .repeat(50));
 
   // Environment variables for .env.local
   console.log("\n📝 Add these to your .env.local file:");
-  console.log(`NEXT_PUBLIC_ROOM_MANAGER_ADDRESS=${roomManagerAddress}`);
-  console.log(`NEXT_PUBLIC_VOICE_NFT_ADDRESS=${voiceNFTAddress}`);
-  console.log(`NEXT_PUBLIC_VIDEO_NFT_ADDRESS=${videoNFTAddress}`);
+  console.log(`NEXT_PUBLIC_METAWORKSPACE_NFT_ADDRESS=${nftAddress}`);
 
   // Test basic functionality
   console.log("\n🧪 Testing basic functionality...");
   
   try {
-    // Test RoomManager
-    const tx1 = await roomManager.createRoom(
-      "test-room-1",
-      "Test Room",
-      ["test.eth"],
-      false,
-      {
-        maxRecordingDuration: 30,
-        allowVoiceNFTs: true,
-        allowVideoNFTs: true,
-        requireWhitelist: true
-      }
-    );
-    await tx1.wait();
-    console.log("✅ Test room created successfully");
-
-    // Test VoiceNFT
-    const tx2 = await voiceNFT.mintVoiceNFT(
+    // Test Voice NFT minting
+    const tx1 = await metaWorkspaceNFT.mintVoiceNFT(
       deployer.address,
-      "QmTestHash123",
+      "QmTestVoiceHash123",
       25,
       "test-room-1",
       ["test.eth"],
-      "Test transcription"
+      "Test voice transcription"
     );
-    await tx2.wait();
+    await tx1.wait();
     console.log("✅ Test voice NFT minted successfully");
 
-    // Test VideoNFT
-    const tx3 = await videoNFT.mintVideoNFT(
+    // Test Video NFT minting
+    const tx2 = await metaWorkspaceNFT.mintVideoNFT(
       deployer.address,
       "QmTestVideoHash456",
       1800,
@@ -91,10 +55,14 @@ async function main() {
       "Test meeting summary",
       []
     );
-    await tx3.wait();
+    await tx2.wait();
     console.log("✅ Test video NFT minted successfully");
 
-    console.log("\n🎊 All contracts deployed and tested successfully!");
+    // Test room stats
+    const stats = await metaWorkspaceNFT.getRoomStats("test-room-1");
+    console.log(`✅ Room stats: ${stats.totalContent} total, ${stats.voiceCount} voice, ${stats.videoCount} video`);
+
+    console.log("\n🎊 MetaWorkspaceNFT deployed and tested successfully!");
     
   } catch (error) {
     console.error("❌ Error during testing:", error);

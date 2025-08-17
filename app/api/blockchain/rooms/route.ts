@@ -93,32 +93,36 @@ export async function GET(request: NextRequest) {
 
     if (roomId) {
       // Get specific room
+
+      
       const roomData = await publicClient.readContract({
         address: contractAddress,
         abi: ROOM_MANAGER_ABI,
         functionName: 'getRoom',
         args: [roomId]
-      });
+      }) as unknown as readonly [string, Address, readonly string[], boolean, bigint, readonly [bigint, boolean, boolean, boolean], boolean];
 
-      if (!roomData[6]) { // exists field
+      const exists = roomData[6];
+      if (!exists) { // exists field
         return NextResponse.json(
           { error: 'Room not found' },
           { status: 404 }
         );
       }
 
+      const settings = roomData[5];
       const room = {
         roomId,
         name: roomData[0],
         creator: roomData[1],
-        farcasterWhitelist: roomData[2],
+        farcasterWhitelist: roomData[2] as string[],
         isPublic: roomData[3],
         createdAt: Number(roomData[4]),
         settings: {
-          maxRecordingDuration: Number(roomData[5][0]),
-          allowVoiceNFTs: roomData[5][1],
-          allowVideoNFTs: roomData[5][2],
-          requireWhitelist: roomData[5][3]
+          maxRecordingDuration: Number(settings[0]),
+          allowVoiceNFTs: settings[1],
+          allowVideoNFTs: settings[2],
+          requireWhitelist: settings[3]
         },
         exists: roomData[6]
       };
@@ -131,7 +135,7 @@ export async function GET(request: NextRequest) {
           abi: ROOM_MANAGER_ABI,
           functionName: 'isUserWhitelisted',
           args: [roomId, userFarcaster]
-        });
+        }) as boolean;
       }
 
       return NextResponse.json({
@@ -162,25 +166,28 @@ export async function GET(request: NextRequest) {
     // Get details for each room
     const roomsData = await Promise.allSettled(
       roomIds.map(async (roomId) => {
+
+        
         const roomData = await publicClient.readContract({
           address: contractAddress,
           abi: ROOM_MANAGER_ABI,
           functionName: 'getRoom',
           args: [roomId]
-        });
+        }) as unknown as readonly [string, Address, readonly string[], boolean, bigint, readonly [bigint, boolean, boolean, boolean], boolean];
 
+        const settings = roomData[5];
         const room = {
           roomId,
           name: roomData[0],
           creator: roomData[1],
-          farcasterWhitelist: roomData[2],
+          farcasterWhitelist: roomData[2] as string[],
           isPublic: roomData[3],
           createdAt: Number(roomData[4]),
           settings: {
-            maxRecordingDuration: Number(roomData[5][0]),
-            allowVoiceNFTs: roomData[5][1],
-            allowVideoNFTs: roomData[5][2],
-            requireWhitelist: roomData[5][3]
+            maxRecordingDuration: Number(settings[0]),
+            allowVoiceNFTs: settings[1],
+            allowVideoNFTs: settings[2],
+            requireWhitelist: settings[3]
           },
           exists: roomData[6]
         };
@@ -193,7 +200,7 @@ export async function GET(request: NextRequest) {
             abi: ROOM_MANAGER_ABI,
             functionName: 'isUserWhitelisted',
             args: [roomId, userFarcaster]
-          });
+          }) as boolean;
         }
 
         return {
@@ -204,8 +211,24 @@ export async function GET(request: NextRequest) {
     );
 
     // Filter successful room queries
+    interface RoomResult {
+      roomId: string;
+      name: string;
+      creator: Address;
+      farcasterWhitelist: string[];
+      isPublic: boolean;
+      createdAt: number;
+      settings: {
+        maxRecordingDuration: number;
+        allowVoiceNFTs: boolean;
+        allowVideoNFTs: boolean;
+        requireWhitelist: boolean;
+      };
+      exists: boolean;
+      hasAccess: boolean;
+    }
     const rooms = roomsData
-      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled')
+      .filter((result): result is PromiseFulfilledResult<RoomResult> => result.status === 'fulfilled')
       .map(result => result.value)
       .filter(room => room.exists);
 

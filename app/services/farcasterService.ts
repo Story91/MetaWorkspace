@@ -68,6 +68,27 @@ export interface SocialGraph {
   };
 }
 
+interface UserData {
+  fid: number | string;
+  username: string;
+  display_name?: string;
+  pfp_url?: string;
+  follower_count?: number;
+  following_count?: number;
+  power_badge?: boolean;
+  verifications?: string[];
+  active_status?: string;
+  custody_address?: string;
+  profile?: {
+    bio?: {
+      text?: string;
+    };
+    location?: {
+      description?: string;
+    };
+  };
+}
+
 export interface Cast {
   hash: string;
   text: string;
@@ -78,20 +99,20 @@ export interface Cast {
   recasts: number;
   embeds?: Array<{
     url: string;
-    metadata?: any;
+    metadata?: Record<string, unknown>;
   }>;
 }
 
 export class FarcasterService {
   private apiKey: string;
   private apiUrl = 'https://api.neynar.com/v2';
-  private isConfigured: boolean;
+  private configured: boolean;
 
   constructor() {
     this.apiKey = process.env.NEYNAR_API_KEY || '';
-    this.isConfigured = !!this.apiKey;
+    this.configured = !!this.apiKey;
 
-    if (!this.isConfigured) {
+    if (!this.configured) {
       console.warn('Farcaster Service: Neynar API key not configured, falling back to mock mode');
     }
   }
@@ -100,7 +121,7 @@ export class FarcasterService {
    * Get user profile by FID or username
    */
   async getUserProfile(identifier: string, byUsername = false): Promise<FarcasterProfile> {
-    if (!this.isConfigured) {
+    if (!this.configured) {
       return this.mockProfile(identifier);
     }
 
@@ -167,7 +188,7 @@ export class FarcasterService {
    * Get user's social graph (following/followers)
    */
   async getSocialGraph(fid: string, limit = 100): Promise<SocialGraph> {
-    if (!this.isConfigured) {
+    if (!this.configured) {
       return this.mockSocialGraph(fid);
     }
 
@@ -210,14 +231,14 @@ export class FarcasterService {
           { headers: { 'API_KEY': this.apiKey } }
         );
         
-        recentCasts = castsResponse.data.casts.map((cast: any) => ({
+        recentCasts = castsResponse.data.casts.map((cast: Cast & { author: UserData }) => ({
           hash: cast.hash,
           text: cast.text,
           timestamp: cast.timestamp,
           author: this.transformUser(cast.author),
-          replies: cast.replies?.count || 0,
-          reactions: cast.reactions?.count || 0,
-          recasts: cast.recasts?.count || 0,
+          replies: typeof cast.replies === 'number' ? cast.replies : (cast.replies as { count?: number })?.count || 0,
+          reactions: typeof cast.reactions === 'number' ? cast.reactions : (cast.reactions as { count?: number })?.count || 0,
+          recasts: typeof cast.recasts === 'number' ? cast.recasts : (cast.recasts as { count?: number })?.count || 0,
           embeds: cast.embeds || []
         }));
 
@@ -272,7 +293,7 @@ export class FarcasterService {
    * Get user's recent casts
    */
   async getUserCasts(fid: string, limit = 25): Promise<Cast[]> {
-    if (!this.isConfigured) {
+    if (!this.configured) {
       return this.mockCasts(fid);
     }
 
@@ -282,14 +303,14 @@ export class FarcasterService {
         { headers: { 'API_KEY': this.apiKey } }
       );
 
-      return response.data.casts.map((cast: any) => ({
+      return response.data.casts.map((cast: Cast & { author: UserData }) => ({
         hash: cast.hash,
         text: cast.text,
         timestamp: cast.timestamp,
         author: this.transformUser(cast.author),
-        replies: cast.replies?.count || 0,
-        reactions: cast.reactions?.count || 0,
-        recasts: cast.recasts?.count || 0,
+        replies: typeof cast.replies === 'number' ? cast.replies : (cast.replies as { count?: number })?.count || 0,
+        reactions: typeof cast.reactions === 'number' ? cast.reactions : (cast.reactions as { count?: number })?.count || 0,
+        recasts: typeof cast.recasts === 'number' ? cast.recasts : (cast.recasts as { count?: number })?.count || 0,
         embeds: cast.embeds || []
       }));
 
@@ -303,7 +324,7 @@ export class FarcasterService {
    * Search users by query
    */
   async searchUsers(query: string, limit = 20): Promise<SocialGraphUser[]> {
-    if (!this.isConfigured) {
+    if (!this.configured) {
       return this.mockSearchResults(query);
     }
 
@@ -325,7 +346,7 @@ export class FarcasterService {
    * Verify if user follows another user
    */
   async checkFollowStatus(sourceFid: string, targetFid: string): Promise<boolean> {
-    if (!this.isConfigured) {
+    if (!this.configured) {
       return Math.random() > 0.5; // Mock random follow status
     }
 
@@ -336,7 +357,7 @@ export class FarcasterService {
       );
 
       const following = response.data.users;
-      return following.some((user: any) => user.fid.toString() === targetFid);
+      return following.some((user: UserData) => user.fid.toString() === targetFid);
 
     } catch (error) {
       console.error('Follow status check failed:', error);
@@ -347,7 +368,7 @@ export class FarcasterService {
   /**
    * Transform API user data to our format
    */
-  private transformUser(user: any): SocialGraphUser {
+  private transformUser(user: UserData): SocialGraphUser {
     return {
       fid: user.fid.toString(),
       username: user.username,
@@ -483,7 +504,7 @@ export class FarcasterService {
    * Check if service is configured
    */
   isConfigured(): boolean {
-    return this.isConfigured;
+    return this.configured;
   }
 
   /**
@@ -491,9 +512,9 @@ export class FarcasterService {
    */
   getStatus(): { configured: boolean; apiUrl: string; mode: string } {
     return {
-      configured: this.isConfigured,
+      configured: this.configured,
       apiUrl: this.apiUrl,
-      mode: this.isConfigured ? 'production' : 'mock'
+      mode: this.configured ? 'production' : 'mock'
     };
   }
 }

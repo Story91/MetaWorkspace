@@ -36,9 +36,33 @@ export async function GET(request: NextRequest) {
     ]);
 
     // Process following data
-    let following = [];
+    interface FarcasterUser {
+      fid: string;
+      username: string;
+      display_name?: string;
+      pfp_url?: string;
+      follower_count?: number;
+      power_badge?: boolean;
+      profile?: {
+        bio?: {
+          text?: string;
+        };
+      };
+    }
+    
+    interface ProcessedUser {
+      fid: string;
+      username: string;
+      displayName: string;
+      pfpUrl: string;
+      followerCount: number;
+      powerBadge: boolean;
+      bio: string;
+    }
+    
+    let following: ProcessedUser[] = [];
     if (followingResponse.status === 'fulfilled') {
-      following = followingResponse.value.data.users.map((user: any) => ({
+      following = followingResponse.value.data.users.map((user: FarcasterUser) => ({
         fid: user.fid,
         username: user.username,
         displayName: user.display_name || user.username,
@@ -52,9 +76,9 @@ export async function GET(request: NextRequest) {
     }
 
     // Process followers data
-    let followers = [];
+    let followers: ProcessedUser[] = [];
     if (followersResponse.status === 'fulfilled') {
-      followers = followersResponse.value.data.users.map((user: any) => ({
+      followers = followersResponse.value.data.users.map((user: FarcasterUser) => ({
         fid: user.fid,
         username: user.username,
         displayName: user.display_name || user.username,
@@ -83,7 +107,16 @@ export async function GET(request: NextRequest) {
         }
       );
       
-      recentCasts = castsResponse.data.casts.map((cast: any) => ({
+      interface Cast {
+        hash: string;
+        text: string;
+        timestamp: string;
+        replies?: { count?: number };
+        reactions?: { count?: number };
+        recasts?: { count?: number };
+      }
+      
+      recentCasts = castsResponse.data.casts.map((cast: Cast) => ({
         hash: cast.hash,
         text: cast.text,
         timestamp: cast.timestamp,
@@ -96,7 +129,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Calculate engagement statistics
-    const totalEngagement = recentCasts.reduce((sum: number, cast: any) => 
+    const totalEngagement = recentCasts.reduce((sum: number, cast: typeof recentCasts[0]) => 
       sum + cast.replies + cast.reactions + cast.recasts, 0
     );
     
@@ -124,7 +157,7 @@ export async function GET(request: NextRequest) {
           totalEngagement,
           avgEngagement,
           topCasts: recentCasts
-            .sort((a, b) => (b.replies + b.reactions + b.recasts) - (a.replies + a.reactions + a.recasts))
+            .sort((a: { replies: number; reactions: number; recasts: number }, b: { replies: number; reactions: number; recasts: number }) => (b.replies + b.reactions + b.recasts) - (a.replies + a.reactions + a.recasts))
             .slice(0, 3)
         },
         stats: {

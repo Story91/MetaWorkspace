@@ -11,7 +11,7 @@ export interface IPFSUploadResult {
   nativeUrl: string;
   size: number;
   timestamp: string;
-  metadata?: any;
+  metadata?: IPFSMetadata;
 }
 
 export interface IPFSMetadata {
@@ -24,7 +24,7 @@ export interface IPFSMetadata {
   participants?: string[];
   transcription?: string;
   summary?: string;
-  [key: string]: any;
+  [key: string]: string | number | boolean | string[] | undefined;
 }
 
 export class IPFSStorageService {
@@ -69,12 +69,11 @@ export class IPFSStorageService {
         name: metadata.name || `MetaWorkspace-${metadata.type}-${Date.now()}`,
         keyvalues: {
           app: 'MetaWorkspace',
-          type: metadata.type,
           uploadedAt: new Date().toISOString(),
+          type: metadata.type,
           roomId: metadata.roomId || '',
           creator: metadata.creator || '',
-          duration: metadata.duration?.toString() || '',
-          ...metadata
+          duration: metadata.duration?.toString() || ''
         }
       };
 
@@ -100,7 +99,17 @@ export class IPFSStorageService {
         nativeUrl: `ipfs://${response.data.IpfsHash}`,
         size: response.data.PinSize,
         timestamp: response.data.Timestamp,
-        metadata: pinataMetadata
+        metadata: {
+          type: metadata.type,
+          name: metadata.name,
+          description: metadata.description,
+          roomId: metadata.roomId,
+          creator: metadata.creator,
+          duration: metadata.duration,
+          transcription: metadata.transcription,
+          participants: metadata.participants,
+          uploadedAt: new Date().toISOString()
+        }
       };
 
       console.log('✅ IPFS upload successful:', {
@@ -134,7 +143,7 @@ export class IPFSStorageService {
   /**
    * Get file information from IPFS
    */
-  async getFileInfo(hash: string): Promise<{ url: string; nativeUrl: string; metadata?: any }> {
+  async getFileInfo(hash: string): Promise<{ url: string; nativeUrl: string; metadata?: IPFSMetadata | null }> {
     if (!this.apiKey || !this.secretKey) {
       return {
         url: `${this.gatewayUrl}${hash}`,
@@ -197,7 +206,7 @@ export class IPFSStorageService {
             name: metadata.name || `MetaWorkspace-${metadata.type}`,
             keyvalues: {
               app: 'MetaWorkspace',
-              type: metadata.type,
+
               pinnedAt: new Date().toISOString(),
               ...metadata
             }
@@ -224,7 +233,7 @@ export class IPFSStorageService {
   /**
    * Upload JSON data to IPFS
    */
-  async uploadJSON(data: any, metadata: IPFSMetadata): Promise<IPFSUploadResult> {
+  async uploadJSON(data: Record<string, unknown>, metadata: IPFSMetadata): Promise<IPFSUploadResult> {
     const jsonBlob = new Blob([JSON.stringify(data, null, 2)], { 
       type: 'application/json' 
     });
@@ -253,8 +262,15 @@ export class IPFSStorageService {
       size: file.size,
       timestamp: new Date().toISOString(),
       metadata: {
+        type: metadata.type,
         name: metadata.name || 'mock-file',
-        keyvalues: metadata
+        description: metadata.description,
+        roomId: metadata.roomId,
+        creator: metadata.creator,
+        duration: metadata.duration,
+        transcription: metadata.transcription,
+        participants: metadata.participants,
+        uploadedAt: new Date().toISOString()
       }
     };
   }

@@ -16,13 +16,17 @@ export interface ChatContext {
   userId: string;
   roomId: string;
   previousMessages: ChatMessage[];
-  workspaceData?: any;
+  workspaceData?: Record<string, unknown>;
 }
 
 export interface AIResponse {
   response: string;
   extractedTasks: TaskItem[];
-  usage?: OpenAI.Chat.Completions.CompletionUsage;
+  usage?: {
+    prompt_tokens?: number;
+    completion_tokens?: number;
+    total_tokens?: number;
+  };
   context: {
     messageId: string;
     timestamp: string;
@@ -64,13 +68,13 @@ export interface TranscriptionResult {
 }
 
 export class AIService {
-  private openai: OpenAI;
-  private isConfigured: boolean;
+  private openai?: OpenAI;
+  private configured: boolean;
 
   constructor() {
-    this.isConfigured = !!process.env.OPENAI_API_KEY;
+    this.configured = !!process.env.OPENAI_API_KEY;
     
-    if (this.isConfigured) {
+    if (this.configured) {
       this.openai = new OpenAI({
         apiKey: process.env.OPENAI_API_KEY,
       });
@@ -83,7 +87,7 @@ export class AIService {
    * Get AI chat response
    */
   async getChatResponse(message: string, context: ChatContext): Promise<AIResponse> {
-    if (!this.isConfigured) {
+    if (!this.configured) {
       return this.mockChatResponse(message, context);
     }
 
@@ -109,7 +113,7 @@ export class AIService {
       messages.push({ role: 'user', content: message });
 
       // Call OpenAI
-      const completion = await this.openai.chat.completions.create({
+      const completion = await this.openai!.chat.completions.create({
         model: process.env.OPENAI_MODEL || 'gpt-4',
         messages,
         temperature: 0.7,
@@ -147,13 +151,13 @@ export class AIService {
     language?: string, 
     prompt?: string
   ): Promise<TranscriptionResult> {
-    if (!this.isConfigured) {
+    if (!this.configured) {
       return this.mockTranscription(audioFile);
     }
 
     try {
       // Call Whisper API
-      const transcription = await this.openai.audio.transcriptions.create({
+      const transcription = await this.openai!.audio.transcriptions.create({
         file: audioFile,
         model: 'whisper-1',
         language: language || undefined,
@@ -179,7 +183,7 @@ export class AIService {
 
       if (text.length > 100) {
         try {
-          const analysisResponse = await this.openai.chat.completions.create({
+          const analysisResponse = await this.openai!.chat.completions.create({
             model: 'gpt-4',
             messages: [
               {
@@ -205,9 +209,12 @@ Format as JSON:
           const analysisText = analysisResponse.choices[0]?.message?.content;
           if (analysisText) {
             const parsed = JSON.parse(analysisText);
-            analysis.summary = parsed.summary || '';
-            analysis.keyPoints = parsed.keyPoints || [];
-            analysis.actionItems = parsed.actionItems || [];
+            analysis = {
+              ...analysis,
+              summary: parsed.summary || '',
+              keyPoints: parsed.keyPoints || [],
+              actionItems: parsed.actionItems || []
+            };
           }
         } catch (err) {
           console.error('Analysis generation failed:', err);
@@ -256,7 +263,7 @@ Format as JSON:
     }>;
     nextSteps: string[];
   }> {
-    if (!this.isConfigured) {
+    if (!this.configured) {
       return this.mockMeetingSummary();
     }
 
@@ -281,7 +288,7 @@ Please provide a structured analysis in JSON format:
   "nextSteps": ["next step 1", "next step 2"]
 }`;
 
-      const response = await this.openai.chat.completions.create({
+      const response = await this.openai!.chat.completions.create({
         model: 'gpt-4',
         messages: [
           { role: 'system', content: 'You are an expert meeting analyzer for professional workspaces.' },
@@ -491,7 +498,7 @@ Respond concisely and helpfully, focusing on immediate value for the user's work
    * Check if AI service is configured
    */
   isConfigured(): boolean {
-    return this.isConfigured;
+    return this.configured;
   }
 
   /**
@@ -499,9 +506,9 @@ Respond concisely and helpfully, focusing on immediate value for the user's work
    */
   getStatus(): { configured: boolean; model: string; mode: string } {
     return {
-      configured: this.isConfigured,
+      configured: this.configured,
       model: process.env.OPENAI_MODEL || 'gpt-4',
-      mode: this.isConfigured ? 'production' : 'mock'
+      mode: this.configured ? 'production' : 'mock'
     };
   }
 }

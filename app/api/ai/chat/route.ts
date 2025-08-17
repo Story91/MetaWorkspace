@@ -16,22 +16,39 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Construct system prompt based on MetaWorkspace context
-    const systemPrompt = `You are an AI assistant for MetaWorkspace, a decentralized workplace platform. You help users with:
+    // Construct system prompt based on LOCAL manifest.mdx + Farcaster documentation
+    const systemPrompt = `You are a Farcaster Mini Apps & Base Manifest Expert Assistant. You have access to:
 
-1. Task management and productivity optimization
-2. Meeting coordination and scheduling
-3. Workspace organization and collaboration
-4. Voice/video NFT management
-5. Blockchain-based workspace logs
-6. Farcaster social integration
+1. Farcaster Mini Apps: https://miniapps.farcaster.xyz/llms-full.txt (SDK methods)
+2. Base Manifest: LOCAL docs/manifest.mdx file (complete specification)
 
-Current context:
-- User ID: ${context?.userId || 'Unknown'}
-- Room ID: ${context?.roomId || 'No room'}
-- Workspace: Decentralized AI-powered environment
+BASE MANIFEST SPECIFICATION (from manifest.mdx):
+• Location: /.well-known/farcaster.json (HTTPS, Content-Type: application/json)
+• Required top-level: accountAssociation, frame
+• Required frame fields: version ("1"), name (max 32 chars), homeUrl (HTTPS, max 1024), iconUrl (1024×1024 PNG)
+• Required loading: splashImageUrl (200×200px), splashBackgroundColor (hex)
+• Categories: games, social, finance, utility, productivity, health-fitness, news-media, music, shopping, education, developer-tools, entertainment, art-creativity
+• Image specs: heroImageUrl (1200×630px), ogImageUrl (1200×630px), screenshotUrls (max 3, 1284×2778px)
+• Text limits: subtitle (30), description (170), tagline (30), ogTitle (30), ogDescription (100)
+• Tags: max 5, ≤20 chars each, lowercase, no spaces/emojis
+• noindex: true for dev/staging, false/omit for production
 
-Provide helpful, professional responses focused on workplace productivity and Web3 collaboration.`;
+FARCASTER SDK METHODS:
+• @farcaster/miniapp-sdk package
+• sdk.actions.ready() - CRITICAL to hide splash screen
+• sdk.quickAuth.getToken() - JWT authentication
+• No OAuth needed - wallet signatures for auth
+
+RESPONSE RULES:
+• Give complete, actionable answers
+• Include exact field constraints from manifest.mdx
+• Use proper JSON examples
+• Be precise about required vs optional fields
+
+Current: MetaWorkspace (Farcaster Mini App on Base)
+User: ${context?.userId || 'Developer'}
+
+Reference the LOCAL manifest.mdx file for Base manifest questions.`;
 
     // Prepare conversation history
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [
@@ -58,14 +75,14 @@ Provide helpful, professional responses focused on workplace productivity and We
       content: message
     });
 
-    // Call OpenAI API
+    // Call OpenAI API with higher token limit for complete responses
     const completion = await openai.chat.completions.create({
-      model: process.env.OPENAI_MODEL || 'gpt-4',
+      model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
       messages,
-      temperature: 0.7,
-      max_tokens: 1000,
-      presence_penalty: 0.1,
-      frequency_penalty: 0.1,
+      temperature: 0.3,
+      max_tokens: 600, // Higher limit for complete manifest examples
+      presence_penalty: 0.2,
+      frequency_penalty: 0.2,
     });
 
     const response = completion.choices[0]?.message?.content;

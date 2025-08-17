@@ -25,37 +25,37 @@ function Card({
   return (
     <div className={`neu-card overflow-hidden transition-all duration-300 hover:shadow-xl ${className}`}>
       {title && (
-        <div className="px-6 py-4 border-b border-[var(--app-card-border)] gradient-mint">
-          <h3 className="text-lg font-semibold text-[var(--app-foreground)] flex items-center">
+        <div className="px-4 py-3 border-b border-[var(--app-card-border)] bg-gradient-to-r from-green-600 to-cyan-600">
+          <h3 className="text-sm font-mono font-bold text-white flex items-center">
+            <span className="mr-2 text-green-300">⚡</span>
             {title}
+            <span className="ml-2 text-green-300">⚡</span>
           </h3>
         </div>
       )}
-      <div className="p-6">{children}</div>
+      <div className="p-4">{children}</div>
     </div>
   );
 }
 
 function ChatBubble({ message, isUser }: { message: ChatMessage; isUser: boolean }) {
   return (
-    <div className={`flex items-start space-x-3 mb-4 ${isUser ? 'flex-row-reverse space-x-reverse' : ''}`}>
-      {/* Avatar */}
-      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm ${
-        isUser 
-          ? 'gradient-accent text-white' 
-          : 'gradient-coral text-white'
-      }`}>
-        {isUser ? '👤' : '🤖'}
-      </div>
+    <div className={`flex items-start mb-4 ${isUser ? 'justify-end' : 'justify-start'}`}>
+      {/* AI Avatar (left side for AI messages) */}
+      {!isUser && (
+        <div className="w-8 h-8 rounded-full gradient-coral text-white flex items-center justify-center text-sm mr-3">
+          🤖
+        </div>
+      )}
       
       {/* Message Bubble */}
-      <div className={`max-w-[80%] p-3 rounded-xl ${
+      <div className={`max-w-[75%] p-3 rounded-xl ${
         isUser 
           ? 'bg-[var(--app-accent)] text-white rounded-br-sm' 
           : 'bg-[var(--app-card-bg)] border border-[var(--app-card-border)] rounded-bl-sm'
       }`}>
         <div className={`text-sm ${isUser ? 'text-white' : 'text-[var(--app-foreground)]'}`}>
-          {message.content}
+          <MessageContent content={message.content} isUser={isUser} />
         </div>
         <div className={`text-xs mt-1 ${
           isUser ? 'text-white/70' : 'text-[var(--app-foreground-muted)]'
@@ -63,22 +63,151 @@ function ChatBubble({ message, isUser }: { message: ChatMessage; isUser: boolean
           {message.timestamp.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
         </div>
       </div>
+
+      {/* User Avatar (right side for user messages) */}
+      {isUser && (
+        <div className="w-8 h-8 rounded-full gradient-accent text-white flex items-center justify-center text-sm ml-3">
+          👤
+        </div>
+      )}
     </div>
   );
+}
+
+function MessageContent({ content, isUser }: { content: string; isUser: boolean }) {
+  const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+
+  const handleCopy = async (codeContent: string, index: number) => {
+    try {
+      await navigator.clipboard.writeText(codeContent);
+      setCopiedIndex(index);
+      setTimeout(() => setCopiedIndex(null), 2000); // Reset after 2 seconds
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
+
+  // Format message content with proper spacing and code blocks
+  const formatContent = (text: string) => {
+    // Split by code blocks first
+    const parts = text.split(/```(\w*)\n?([\s\S]*?)```/g);
+    const elements: React.ReactNode[] = [];
+    
+    for (let i = 0; i < parts.length; i++) {
+      if (i % 3 === 0) {
+        // Regular text - format with line breaks and bullets
+        const textPart = parts[i];
+        if (textPart.trim()) {
+          const formattedText = textPart
+            .split('\n')
+            .map((line, lineIdx) => {
+              const trimmedLine = line.trim();
+              const uniqueKey = `text-${i}-${lineIdx}`;
+              
+              if (!trimmedLine) return <br key={uniqueKey} />;
+              
+              // Handle bullet points
+              if (trimmedLine.startsWith('• ') || trimmedLine.startsWith('- ')) {
+                return (
+                  <div key={uniqueKey} className="ml-2 my-1">
+                    <span className="text-green-400 mr-1">•</span>
+                    {trimmedLine.substring(2)}
+                  </div>
+                );
+              }
+              
+              // Handle numbered lists
+              if (/^\d+\./.test(trimmedLine)) {
+                return (
+                  <div key={uniqueKey} className="ml-2 my-1">
+                    {trimmedLine}
+                  </div>
+                );
+              }
+              
+              // Handle headers (### Key Fields:)
+              if (trimmedLine.startsWith('### ')) {
+                return (
+                  <div key={uniqueKey} className="font-bold mt-3 mb-2 text-green-300">
+                    {trimmedLine.substring(4)}
+                  </div>
+                );
+              }
+              
+              // Regular paragraph
+              return (
+                <div key={uniqueKey} className="my-2">
+                  {trimmedLine}
+                </div>
+              );
+            });
+          elements.push(...formattedText);
+        }
+      } else if (i % 3 === 1) {
+        // Language identifier
+        continue;
+      } else if (i % 3 === 2) {
+        // Code block content
+        const codeContent = parts[i];
+        const language = parts[i - 1] || 'text';
+        elements.push(
+          <div key={i} className="my-3 p-3 bg-gray-900 rounded border border-green-500/30 overflow-x-auto relative">
+            <div className="flex justify-between items-center mb-1">
+              <div className="text-xs text-green-400 font-mono">{language}</div>
+              <button
+                onClick={() => handleCopy(codeContent, i)}
+                className="text-xs text-green-300 hover:text-green-100 hover:bg-green-800/30 px-2 py-1 rounded transition-colors"
+                title="Copy to clipboard"
+              >
+                {copiedIndex === i ? '✅ Copied!' : '📋 Copy'}
+              </button>
+            </div>
+            <pre className="text-xs font-mono text-green-100 whitespace-pre-wrap">
+              {codeContent}
+            </pre>
+          </div>
+        );
+      }
+    }
+    
+    return elements;
+  };
+
+  return <div className="leading-relaxed">{formatContent(content)}</div>;
 }
 
 export function AITaskAssistant() {
   const { notification } = useMiniKitFeatures();
   
-  const [messages, setMessages] = useState<ChatMessage[]>([
+  // Load messages from localStorage on component mount
+  const loadStoredMessages = (): ChatMessage[] => {
+    if (typeof window === 'undefined') return defaultMessages;
+    try {
+      const stored = localStorage.getItem('metaworkspace-chat-messages');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return parsed.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to load stored messages:', error);
+    }
+    return defaultMessages;
+  };
+
+  const defaultMessages: ChatMessage[] = [
     {
       id: '1',
       type: 'ai',
-      content: 'Hi! I\'m your AI Task Assistant. I can help you:\n\n• Generate tasks from conversations\n• Optimize your workflow\n• Transcribe meetings\n• Create project plans\n\nWhat would you like to work on today?',
+      content: 'Hi! I\'m your Base + Farcaster Mini Apps Expert. I have access to official documentation and specialize in:\n\n• Base Manifest (/.well-known/farcaster.json)\n• @farcaster/miniapp-sdk methods\n• Quick Auth & wallet signatures\n• Base App discovery & embeds\n\nHow can I help you build your Mini App?',
       timestamp: new Date(),
       avatar: '🤖'
     }
-  ]);
+  ];
+
+  const [messages, setMessages] = useState<ChatMessage[]>(loadStoredMessages);
   
   const [inputValue, setInputValue] = useState('');
   const [isTyping, setIsTyping] = useState(false);
@@ -86,20 +215,44 @@ export function AITaskAssistant() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // Quick action suggestions
+  // Quick action suggestions - MetaWorkspace focused
   const [quickActions] = useState([
-    { id: 'meeting', icon: '🎤', text: 'Transcribe last meeting', action: 'transcribe' },
-    { id: 'tasks', icon: '✅', text: 'Generate 5 tasks for today', action: 'generate_tasks' },
-    { id: 'optimize', icon: '⚡', text: 'Optimize my workflow', action: 'optimize' },
-    { id: 'plan', icon: '📋', text: 'Create project plan', action: 'plan' }
+    { id: 'manifest-helper', icon: '📋', text: 'Manifest helper', action: 'Create a complete /.well-known/farcaster.json manifest for MetaWorkspace Mini App' },
+    { id: 'voice-nft', icon: '🎤', text: 'Voice NFT setup', action: 'How do I mint Voice NFTs in MetaWorkspace using our smart contract?' },
+    { id: 'room-creation', icon: '🏛️', text: 'Room creation', action: 'Guide me through creating workspace rooms with blockchain verification' },
+    { id: 'ai-integration', icon: '🤖', text: 'AI integration', action: 'How does MetaWorkspace AI Task Assistant work with OpenAI and blockchain logging?' }
   ]);
 
   const scrollToBottom = useCallback(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (messagesEndRef.current) {
+      // Smooth scroll to latest message without expanding the container
+      messagesEndRef.current.scrollIntoView({ 
+        behavior: 'smooth', 
+        block: 'end',
+        inline: 'nearest'
+      });
+    }
   }, []);
 
+  // Save messages to localStorage whenever messages change
   useEffect(() => {
-    scrollToBottom();
+    if (typeof window !== 'undefined' && messages.length > 0) {
+      try {
+        localStorage.setItem('metaworkspace-chat-messages', JSON.stringify(messages));
+      } catch (error) {
+        console.error('Failed to save messages:', error);
+      }
+    }
+  }, [messages]);
+
+  // Auto-scroll to latest message when messages change
+  useEffect(() => {
+    // Only scroll when new messages are added (not on initial load)
+    if (messages.length > 1) {
+      setTimeout(() => {
+        scrollToBottom();
+      }, 100); // Small delay to ensure message is rendered
+    }
   }, [messages, scrollToBottom]);
 
   const callRealAI = useCallback(async (userMessage: string): Promise<string> => {
@@ -208,10 +361,10 @@ export function AITaskAssistant() {
   }, [handleSendMessage]);
 
   return (
-    <Card title="🧠 AI Task Assistant">
-      <div className="space-y-4">
+    <Card>
+      <div className="space-y-3">
         {/* Chat Messages */}
-        <div className="h-64 overflow-y-auto bg-gradient-to-b from-[var(--app-accent-light)] to-transparent p-3 rounded-lg border border-[var(--app-card-border)]">
+        <div className="h-80 max-h-80 overflow-y-auto bg-gradient-to-b from-green-900/20 to-transparent p-3 rounded-lg border border-green-500/30 font-mono text-xs">
           {messages.map((message) => (
             <ChatBubble 
               key={message.id} 
@@ -240,7 +393,7 @@ export function AITaskAssistant() {
         </div>
 
         {/* Quick Actions */}
-        <div className="grid grid-cols-2 gap-2">
+        <div className="grid grid-cols-2 gap-1">
           {quickActions.map((action) => (
             <Button
               key={action.id}
@@ -248,10 +401,10 @@ export function AITaskAssistant() {
               size="sm"
               onClick={() => handleQuickAction(action.action, action.text)}
               disabled={isProcessing}
-              className="text-left justify-start"
+              className="text-left justify-start border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 py-1 px-2 h-8"
             >
-              <span className="mr-2">{action.icon}</span>
-              <span className="text-xs">{action.text}</span>
+              <span className="mr-1 text-xs">{action.icon}</span>
+              <span className="text-[10px] font-mono">{action.text}</span>
             </Button>
           ))}
         </div>
@@ -264,21 +417,22 @@ export function AITaskAssistant() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Ask AI to help with tasks, meetings, or planning..."
+            placeholder="Enter command for AI assistant..."
             disabled={isProcessing}
-            className="flex-1 neu-input text-sm"
+            className="flex-1 neu-input text-sm font-mono border-green-500/30 focus:border-green-500"
           />
           <Button
             variant="primary"
             size="sm"
             onClick={() => handleSendMessage()}
             disabled={!inputValue.trim() || isProcessing}
+            className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
             icon={isProcessing ? 
               <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> :
               <Icon name="arrow-right" size="sm" />
             }
           >
-            {isProcessing ? 'Processing...' : 'Send'}
+            {isProcessing ? 'Processing...' : 'Transact'}
           </Button>
         </div>
 

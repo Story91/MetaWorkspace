@@ -178,34 +178,7 @@ type WorkspaceOverviewProps = {
 export function WorkspaceOverview({ setActiveTab }: WorkspaceOverviewProps) {
   return (
     <div className="space-y-5 animate-fade-in">
-      <Card title="🚀 MetaWorkspace AI - Virtual Office 2.0">
-        <div className="space-y-4">
-
-          
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-[var(--app-foreground)]">
-                Decentralized workspace with AI automation & Web3 verification
-              </p>
-              <p className="text-xs text-[var(--app-foreground-muted)] mt-1">
-                🤖 Task automation • ⛓️ IP protection • 🌐 DAO collaboration
-              </p>
-            </div>
-            <Button
-              variant="secondary"
-              size="sm"
-              onClick={() => setActiveTab("features")}
-              icon={<Icon name="arrow-right" size="sm" />}
-            >
-              Explore
-            </Button>
-          </div>
-        </div>
-      </Card>
-
       <AITaskAssistant />
-
-      <BlockchainWorkLogger />
     </div>
   );
 }

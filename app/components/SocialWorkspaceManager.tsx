@@ -67,7 +67,7 @@ export function SocialWorkspaceManager() {
   const handleSignWorkProof = useCallback(async () => {
     try {
       const message = `MetaWorkspace AI - Work Verification\nUser: ${(userProfile as { username?: string })?.username || 'Anonymous'}\nTimestamp: ${new Date().toISOString()}\nTasks: 12 completed\nHours: 8.5h`;
-      const signature = await signMessage({ message });
+      const signature = await signMessage();
       setSignedMessage(signature);
       
       await notification({

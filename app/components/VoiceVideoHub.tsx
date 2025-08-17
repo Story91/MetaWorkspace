@@ -4,7 +4,8 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
-import { blockchainStorage, type VoiceNFT } from "../services/blockchainStorage";
+import { blockchainService, type VoiceNFT, type VideoNFT } from "../services/blockchainService";
+import { IPFSStorageService } from "../services/ipfsStorage";
 
 // RecordRTC types
 interface RecordRTCInstance {
@@ -52,6 +53,8 @@ export function VoiceVideoHub() {
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceNFTs, setVoiceNFTs] = useState<VoiceNFT[]>([]);
   const [currentRoomId] = useState("metaworkspace-main-room");
+  const [isWalletConnected, setIsWalletConnected] = useState(false);
+  const ipfsService = new IPFSStorageService();
   
   // Video Meeting State
   const [isInVideoCall, setIsInVideoCall] = useState(false);
@@ -82,7 +85,7 @@ export function VoiceVideoHub() {
     // Load existing Voice NFTs from blockchain
     const loadVoiceNFTs = async () => {
       try {
-        const nfts = await blockchainStorage.getRoomVoiceNFTs(currentRoomId, "metaworkspace.eth");
+        const nfts = await blockchainService.getVoiceNFTsByRoom(currentRoomId);
         setVoiceNFTs(nfts);
       } catch (error) {
         console.error('Failed to load voice NFTs:', error);
@@ -238,37 +241,66 @@ export function VoiceVideoHub() {
     if (recordedBlob) {
       setTimeout(async () => {
         try {
+          // Connect wallet if not connected
+          if (!isWalletConnected) {
+            await notification({
+              title: "🔗 Connect Wallet",
+              body: "Please connect your wallet to mint NFT"
+            });
+            
+            const account = await blockchainService.connectWallet();
+            if (account) {
+              setIsWalletConnected(true);
+            } else {
+              throw new Error("Wallet connection failed");
+            }
+          }
+          
           await notification({
             title: "🤖 AI + Blockchain Processing",
             body: "Transcribing, creating NFT, and uploading to IPFS..."
           });
           
-          // Create Voice NFT on blockchain
-          const voiceNFT = await blockchainStorage.createVoiceNFT(
-            recordedBlob,
+          // Upload to IPFS first
+          const ipfsResult = await ipfsService.uploadFile(recordedBlob, {
+            type: 'voice-recording',
+            name: `Voice Recording ${new Date().toISOString()}`,
+            roomId: currentRoomId,
+            creator: blockchainService.getAccount() || '',
+            duration: recordingDuration
+          });
+          
+          // Mint Voice NFT on blockchain
+          const result = await blockchainService.mintVoiceNFT(
+            ipfsResult.hash,
             recordingDuration,
             currentRoomId,
-            `Voice recording from ${new Date().toLocaleString()}`, // Mock transcription
-            [] // Public recording
+            [], // Public recording
+            `Voice recording from ${new Date().toLocaleString()}` // Transcription
           );
           
-          // Add to local state
-          setVoiceNFTs(prev => [voiceNFT, ...prev]);
-          
-          await notification({
-            title: "🎉 Voice NFT Created!",
-            body: `Token ID: ${voiceNFT.tokenId} • Stored on IPFS: ${voiceNFT.ipfsHash.slice(0, 10)}...`
-          });
+          if (result.success) {
+            // Reload NFTs from blockchain
+            const nfts = await blockchainService.getVoiceNFTsByRoom(currentRoomId);
+            setVoiceNFTs(nfts);
+            
+            await notification({
+              title: "🎉 Voice NFT Created!",
+              body: `Transaction: ${result.hash.slice(0, 10)}... • IPFS: ${ipfsResult.hash.slice(0, 10)}...`
+            });
+          } else {
+            throw new Error(result.error || "Minting failed");
+          }
         } catch (error) {
           console.error('Blockchain upload failed:', error);
           await notification({
             title: "⚠️ Blockchain Upload Failed",
-            body: "Recording saved locally. Blockchain upload will retry automatically."
+            body: error instanceof Error ? error.message : "Recording saved locally. Please try again."
           });
         }
       }, 1500);
     }
-  }, [notification, recordingDuration, currentRoomId, recordedBlob]);
+  }, [notification, recordingDuration, currentRoomId, recordedBlob, isWalletConnected, ipfsService]);
 
   const handleJoinVideoCall = useCallback(async (meetingId: number) => {
     const meeting = videoMeetings.find(m => m.id === meetingId);

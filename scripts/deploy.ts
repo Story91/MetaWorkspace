@@ -1,14 +1,21 @@
-import { ethers } from "hardhat";
+const { ethers } = require("hardhat");
 
 async function main() {
   console.log("🚀 Starting MetaWorkspace contract deployment...");
 
   // Get the deployer account
-  const [deployer] = await ethers.getSigners();
-  console.log("📝 Deploying contracts with account:", deployer.address);
+  const signers = await ethers.getSigners();
+  const deployer = signers[0];
+  
+  if (!deployer) {
+    throw new Error("No signer available. Please check your PRIVATE_KEY in .env");
+  }
+  
+  const deployerAddress = await deployer.getAddress();
+  console.log("📝 Deploying contracts with account:", deployerAddress);
 
   // Check deployer balance
-  const balance = await ethers.provider.getBalance(deployer.address);
+  const balance = await ethers.provider.getBalance(deployerAddress);
   console.log("💰 Account balance:", ethers.formatEther(balance), "ETH");
 
   // Deploy MetaWorkspaceNFT contract (universal for all content)
@@ -35,7 +42,7 @@ async function main() {
   try {
     // Test Voice NFT minting
     const tx1 = await metaWorkspaceNFT.mintVoiceNFT(
-      deployer.address,
+      deployerAddress,
       "QmTestVoiceHash123",
       25,
       "test-room-1",
@@ -47,7 +54,7 @@ async function main() {
 
     // Test Video NFT minting
     const tx2 = await metaWorkspaceNFT.mintVideoNFT(
-      deployer.address,
+      deployerAddress,
       "QmTestVideoHash456",
       1800,
       "test-room-1",

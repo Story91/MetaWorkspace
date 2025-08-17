@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\contracts\\MetaWorkspaceNFT.sol": {
-      "lastModificationDate": 1755443740924,
-      "contentHash": "6108002c9394c2d6ea69eb441d6b11b8",
+      "lastModificationDate": 1755443807188,
+      "contentHash": "b5724d273a09ce4364d207bf53f50adb",
       "sourceName": "contracts/MetaWorkspaceNFT.sol",
       "solcConfig": {
         "version": "0.8.20",

@@ -199,9 +199,7 @@ export function AdvancedCollaborationPanel() {
           </div>
         )}
 
-        <div className="text-xs text-center text-[var(--app-foreground-muted)] bg-[var(--app-accent-light)] p-2 rounded">
-          🚀 Collaboration Status: Sharing ✅ | Cast Viewing {isAvailable.socialGraph ? "✅" : "🔧"} | Notifications ✅
-        </div>
+
       </div>
     </Card>
   );

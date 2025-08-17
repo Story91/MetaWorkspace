@@ -102,27 +102,38 @@ export function AITaskAssistant() {
     scrollToBottom();
   }, [messages, scrollToBottom]);
 
-  const simulateAIResponse = useCallback((userMessage: string): string => {
-    const userLower = userMessage.toLowerCase();
-    
-    if (userLower.includes('task') || userLower.includes('todo')) {
-      return `I'll create some tasks based on your request:\n\n✅ ${userMessage.slice(0, 50)}...\n✅ Research and analyze requirements\n✅ Set up development environment\n✅ Create initial prototype\n\nThese tasks have been added to your workspace. Would you like me to prioritize them or add more details?`;
+  const callRealAI = useCallback(async (userMessage: string): Promise<string> => {
+    try {
+      const response = await fetch('/api/ai/chat', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: userMessage,
+          context: {
+            roomId: 'metaworkspace-main-room',
+            userId: 'metaworkspace.eth',
+            previousMessages: messages.slice(-5).map(m => ({
+              role: m.type === 'user' ? 'user' : 'assistant',
+              content: m.content
+            }))
+          }
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`API call failed: ${response.status}`);
+      }
+
+      const data = await response.json();
+      return data.response || data.message || 'AI response received successfully.';
+    } catch (error) {
+      console.error('AI API call failed:', error);
+      // Fallback to mock for demo purposes
+      return `🔧 AI Service temporarily unavailable. Mock response: I understand you're asking about "${userMessage}". I can help you with task generation, meeting analysis, workflow optimization, and progress tracking. What specific aspect would you like to explore?`;
     }
-    
-    if (userLower.includes('meeting') || userLower.includes('transcribe')) {
-      return `I can help transcribe your meetings! 🎤\n\nFor your last meeting, I can:\n• Generate full transcript\n• Extract action items\n• Create task assignments\n• Summarize key decisions\n\nWould you like me to process your latest recording?`;
-    }
-    
-    if (userLower.includes('optimize') || userLower.includes('workflow')) {
-      return `Based on your recent activity, here are optimization suggestions:\n\n⚡ **Time Blocking**: Reserve 9-11 AM for deep work\n⚡ **Batch Tasks**: Group similar activities\n⚡ **AI Automation**: Auto-transcribe meetings\n⚡ **Priority Matrix**: Focus on high-impact tasks\n\nImplementing these could save you 2+ hours daily!`;
-    }
-    
-    if (userLower.includes('plan') || userLower.includes('project')) {
-      return `Let me create a project plan structure:\n\n📋 **Phase 1: Planning** (Week 1)\n• Requirements analysis\n• Stakeholder alignment\n• Resource allocation\n\n📋 **Phase 2: Development** (Weeks 2-4)\n• Core implementation\n• Testing & validation\n• User feedback\n\n📋 **Phase 3: Launch** (Week 5)\n• Final preparations\n• Go-live execution\n• Post-launch monitoring\n\nWould you like me to customize this for your specific project?`;
-    }
-    
-    return `I understand you're asking about: "${userMessage}"\n\nI can help you with:\n🤖 **Task Generation** - Create actionable items\n🎤 **Meeting Analysis** - Transcribe & summarize\n⚡ **Workflow Optimization** - Improve efficiency\n📊 **Progress Tracking** - Monitor achievements\n\nWhat specific aspect would you like to explore?`;
-  }, []);
+  }, [messages]);
 
   const handleSendMessage = useCallback(async (message?: string) => {
     const messageToSend = message || inputValue.trim();
@@ -149,15 +160,28 @@ export function AITaskAssistant() {
 
     setIsTyping(false);
 
-    // Generate AI response
-    const aiResponse: ChatMessage = {
-      id: (Date.now() + 1).toString(),
-      type: 'ai',
-      content: simulateAIResponse(messageToSend),
-      timestamp: new Date()
-    };
+    // Generate AI response using real API
+    try {
+      const aiResponseContent = await callRealAI(messageToSend);
+      const aiResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: aiResponseContent,
+        timestamp: new Date()
+      };
 
-    setMessages(prev => [...prev, aiResponse]);
+      setMessages(prev => [...prev, aiResponse]);
+    } catch (error) {
+      console.error('Failed to get AI response:', error);
+      const errorResponse: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        type: 'ai',
+        content: '❌ Sorry, I encountered an error processing your request. Please try again.',
+        timestamp: new Date()
+      };
+      setMessages(prev => [...prev, errorResponse]);
+    }
+    
     setIsProcessing(false);
 
     // Send notification
@@ -170,7 +194,7 @@ export function AITaskAssistant() {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [inputValue, isProcessing, simulateAIResponse, notification]);
+  }, [inputValue, isProcessing, callRealAI, notification]);
 
   const handleQuickAction = useCallback(async (action: string, text: string) => {
     await handleSendMessage(text);
@@ -258,10 +282,7 @@ export function AITaskAssistant() {
           </Button>
         </div>
 
-        {/* AI Status */}
-        <div className="text-xs text-center text-[var(--app-foreground-muted)] bg-[var(--app-accent-light)] p-2 rounded">
-          🤖 AI Status: {isProcessing ? 'Processing your request...' : 'Ready to assist'} • Connected to GPT-4
-        </div>
+
       </div>
     </Card>
   );

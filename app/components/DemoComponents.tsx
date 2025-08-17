@@ -180,22 +180,7 @@ export function WorkspaceOverview({ setActiveTab }: WorkspaceOverviewProps) {
     <div className="space-y-5 animate-fade-in">
       <Card title="🚀 MetaWorkspace AI - Virtual Office 2.0">
         <div className="space-y-4">
-          <div className="grid grid-cols-2 gap-4">
-            <div className="neu-card p-4 gradient-mint">
-              <div className="flex items-center space-x-2 mb-2">
-                <div className="w-3 h-3 bg-[var(--app-coral)] rounded-full animate-pulse"></div>
-                <span className="text-sm font-semibold text-[var(--app-foreground)]">AI Active</span>
-              </div>
-              <p className="text-xs text-[var(--app-foreground-muted)]">Smart automation running</p>
-            </div>
-            <div className="neu-card p-4 gradient-accent text-white">
-              <div className="flex items-center space-x-2 mb-2">
-                <Icon name="check" className="text-white" size="sm" />
-                <span className="text-sm font-semibold">Blockchain Live</span>
-              </div>
-              <p className="text-xs opacity-90">Base L2 verified</p>
-            </div>
-          </div>
+
           
           <div className="flex items-center justify-between">
             <div>

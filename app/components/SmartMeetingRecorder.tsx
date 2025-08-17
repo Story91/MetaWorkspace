@@ -178,24 +178,7 @@ export function SmartMeetingRecorder() {
           )}
         </div>
 
-        {/* AI Features */}
-        <div className="grid grid-cols-3 gap-3">
-          <div className="neu-card p-4 text-center gradient-accent text-white">
-            <Icon name="star" className="mx-auto mb-2 text-yellow-300" />
-            <div className="text-sm font-medium">AI Transcription</div>
-            <div className="text-xs opacity-90 mt-1">Real-time</div>
-          </div>
-          <div className="neu-card p-4 text-center gradient-coral text-white">
-            <Icon name="check" className="mx-auto mb-2 text-green-300" />
-            <div className="text-sm font-medium">Action Items</div>
-            <div className="text-xs opacity-90 mt-1">Auto-generated</div>
-          </div>
-          <div className="neu-card p-4 text-center gradient-mint">
-            <Icon name="heart" className="mx-auto mb-2 text-purple-600" />
-            <div className="text-sm font-medium text-[var(--app-foreground)]">Team Sync</div>
-            <div className="text-xs text-[var(--app-foreground-muted)] mt-1">Blockchain logs</div>
-          </div>
-        </div>
+
 
         {/* Recent Recordings */}
         <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
@@ -241,10 +224,7 @@ export function SmartMeetingRecorder() {
           </div>
         </div>
 
-        {/* Integration Status */}
-        <div className="text-xs text-center text-[var(--app-foreground-muted)] bg-[var(--app-accent-light)] p-2 rounded">
-          🤖 AI Features: Whisper Transcription • GPT-4 Summarization • Auto Action Items • Blockchain Logging
-        </div>
+
       </div>
     </Card>
   );

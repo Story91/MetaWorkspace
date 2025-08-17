@@ -302,7 +302,7 @@ export function AITaskAssistant() {
       // Fallback to mock for demo purposes
       return `🔧 AI Service temporarily unavailable. Mock response: I understand you're asking about "${userMessage}". I can help you with task generation, meeting analysis, workflow optimization, and progress tracking. What specific aspect would you like to explore?`;
     }
-  }, [messages]);
+  }, [messages, context?.user?.fid, userProfile]);
 
   const handleSendMessage = useCallback(async (message?: string) => {
     const messageToSend = message || inputValue.trim();
@@ -363,7 +363,7 @@ export function AITaskAssistant() {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [inputValue, isProcessing, callRealAI, notification, context?.user?.fid, userProfile]);
+  }, [inputValue, isProcessing, callRealAI, notification]);
 
   const handleQuickAction = useCallback(async (action: string, text: string) => {
     await handleSendMessage(text);

@@ -67,6 +67,24 @@ export function SmartMeetingRecorder() {
     audioLevel: 0
   });
 
+  const handleStopRecording = useCallback(async () => {
+    setIsRecording(false);
+    setCurrentRecording({ duration: "00:00", participants: 0, audioLevel: 0 });
+    
+    await notification({
+      title: "✅ Recording Complete!",
+      body: "AI is processing meeting summary and action items..."
+    });
+
+    // Simulate AI processing
+    setTimeout(async () => {
+      await notification({
+        title: "🤖 AI Summary Ready!",
+        body: "Meeting transcription, summary, and action items generated"
+      });
+    }, 3000);
+  }, [notification]);
+
   const handleStartRecording = useCallback(async () => {
     setIsRecording(true);
     setCurrentRecording(prev => ({ ...prev, participants: 1 }));
@@ -96,24 +114,6 @@ export function SmartMeetingRecorder() {
       handleStopRecording();
     }, 10000);
   }, [notification, handleStopRecording]);
-
-  const handleStopRecording = useCallback(async () => {
-    setIsRecording(false);
-    setCurrentRecording({ duration: "00:00", participants: 0, audioLevel: 0 });
-    
-    await notification({
-      title: "✅ Recording Complete!",
-      body: "AI is processing meeting summary and action items..."
-    });
-
-    // Simulate AI processing
-    setTimeout(async () => {
-      await notification({
-        title: "🤖 AI Summary Ready!",
-        body: "Meeting transcription, summary, and action items generated"
-      });
-    }, 3000);
-  }, [notification]);
 
   const handleViewSummary = useCallback(async (recordingId: number) => {
     const recording = recordings.find(r => r.id === recordingId);

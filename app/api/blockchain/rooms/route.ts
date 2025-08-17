@@ -1,61 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, Address } from 'viem';
 import { base, baseSepolia } from 'viem/chains';
+import { METAWORKSPACE_NFT_ABI } from '../../../constants/contractABI';
 
-// Smart contract ABI for RoomManager
-const ROOM_MANAGER_ABI = [
-  {
-    name: 'getAllRoomIds',
-    type: 'function',
-    inputs: [],
-    outputs: [{ name: '', type: 'string[]' }],
-    stateMutability: 'view'
-  },
-  {
-    name: 'getRoom',
-    type: 'function',
-    inputs: [{ name: 'roomId', type: 'string' }],
-    outputs: [{
-      type: 'tuple',
-      components: [
-        { name: 'name', type: 'string' },
-        { name: 'creator', type: 'address' },
-        { name: 'farcasterWhitelist', type: 'string[]' },
-        { name: 'isPublic', type: 'bool' },
-        { name: 'createdAt', type: 'uint256' },
-        { 
-          name: 'settings',
-          type: 'tuple',
-          components: [
-            { name: 'maxRecordingDuration', type: 'uint256' },
-            { name: 'allowVoiceNFTs', type: 'bool' },
-            { name: 'allowVideoNFTs', type: 'bool' },
-            { name: 'requireWhitelist', type: 'bool' }
-          ]
-        },
-        { name: 'exists', type: 'bool' }
-      ]
-    }],
-    stateMutability: 'view'
-  },
-  {
-    name: 'isUserWhitelisted',
-    type: 'function',
-    inputs: [
-      { name: 'roomId', type: 'string' },
-      { name: 'farcasterUsername', type: 'string' }
-    ],
-    outputs: [{ name: '', type: 'bool' }],
-    stateMutability: 'view'
-  },
-  {
-    name: 'getTotalRooms',
-    type: 'function',
-    inputs: [],
-    outputs: [{ name: '', type: 'uint256' }],
-    stateMutability: 'view'
-  }
-] as const;
+
 
 // Get the appropriate chain and RPC URL
 const getChainConfig = () => {
@@ -72,11 +20,11 @@ export async function GET(request: NextRequest) {
     const userFarcaster = searchParams.get('user');
     const roomId = searchParams.get('roomId');
 
-    const contractAddress = process.env.NEXT_PUBLIC_ROOM_MANAGER_ADDRESS as Address;
+    const contractAddress = process.env.NEXT_PUBLIC_METAWORKSPACE_NFT_ADDRESS as Address;
     
     if (!contractAddress) {
       return NextResponse.json(
-        { error: 'Room Manager contract not deployed' },
+        { error: 'MetaWorkspace NFT contract not deployed' },
         { status: 500 }
       );
     }
@@ -92,147 +40,111 @@ export async function GET(request: NextRequest) {
     console.log('Querying rooms from blockchain:', { contractAddress, chain: chain.name });
 
     if (roomId) {
-      // Get specific room
-
-      
-      const roomData = await publicClient.readContract({
+      // Check if room exists first
+      const exists = await publicClient.readContract({
         address: contractAddress,
-        abi: ROOM_MANAGER_ABI,
-        functionName: 'getRoom',
+        abi: METAWORKSPACE_NFT_ABI,
+        functionName: 'roomExists',
         args: [roomId]
-      }) as unknown as readonly [string, Address, readonly string[], boolean, bigint, readonly [bigint, boolean, boolean, boolean], boolean];
+      }) as boolean;
 
-      const exists = roomData[6];
-      if (!exists) { // exists field
+      if (!exists) {
         return NextResponse.json(
           { error: 'Room not found' },
           { status: 404 }
         );
       }
 
-      const settings = roomData[5];
+      // Get room stats
+      const roomStats = await publicClient.readContract({
+        address: contractAddress,
+        abi: METAWORKSPACE_NFT_ABI,
+        functionName: 'getRoomStats',
+        args: [roomId]
+      }) as unknown as readonly [bigint, bigint, bigint];
+
+      // Check user access - simplified for now
+      let hasAccess = true; // All users have access for now
+      // TODO: Implement proper room access control
+
       const room = {
         roomId,
-        name: roomData[0],
-        creator: roomData[1],
-        farcasterWhitelist: roomData[2] as string[],
-        isPublic: roomData[3],
-        createdAt: Number(roomData[4]),
-        settings: {
-          maxRecordingDuration: Number(settings[0]),
-          allowVoiceNFTs: settings[1],
-          allowVideoNFTs: settings[2],
-          requireWhitelist: settings[3]
+        name: roomId, // Use roomId as name for now
+        creator: '', // TODO: Get from events or store separately
+        exists: true,
+        stats: {
+          totalNFTs: Number(roomStats[0]),
+          voiceNFTs: Number(roomStats[1]),
+          videoNFTs: Number(roomStats[2])
         },
-        exists: roomData[6]
+        hasAccess
       };
-
-      // Check user access if username provided
-      let hasAccess = false;
-      if (userFarcaster) {
-        hasAccess = await publicClient.readContract({
-          address: contractAddress,
-          abi: ROOM_MANAGER_ABI,
-          functionName: 'isUserWhitelisted',
-          args: [roomId, userFarcaster]
-        }) as boolean;
-      }
 
       return NextResponse.json({
         success: true,
-        room: {
-          ...room,
-          hasAccess
-        }
+        room
       });
     }
 
-    // Get all rooms
-    const [roomIds, totalRooms] = await Promise.all([
-      publicClient.readContract({
-        address: contractAddress,
-        abi: ROOM_MANAGER_ABI,
-        functionName: 'getAllRoomIds'
-      }),
-      publicClient.readContract({
-        address: contractAddress,
-        abi: ROOM_MANAGER_ABI,
-        functionName: 'getTotalRooms'
-      })
-    ]);
+    // Get all rooms - for now return demo rooms
+    // TODO: Implement proper room enumeration when available
+    const demoRooms = [
+      'metaworkspace-main',
+      'dev-team-standup',
+      'marketing-brainstorm',
+      'public-demo'
+    ];
 
-    console.log(`Found ${roomIds.length} rooms on blockchain`);
-
-    // Get details for each room
     const roomsData = await Promise.allSettled(
-      roomIds.map(async (roomId) => {
-
-        
-        const roomData = await publicClient.readContract({
-          address: contractAddress,
-          abi: ROOM_MANAGER_ABI,
-          functionName: 'getRoom',
-          args: [roomId]
-        }) as unknown as readonly [string, Address, readonly string[], boolean, bigint, readonly [bigint, boolean, boolean, boolean], boolean];
-
-        const settings = roomData[5];
-        const room = {
-          roomId,
-          name: roomData[0],
-          creator: roomData[1],
-          farcasterWhitelist: roomData[2] as string[],
-          isPublic: roomData[3],
-          createdAt: Number(roomData[4]),
-          settings: {
-            maxRecordingDuration: Number(settings[0]),
-            allowVoiceNFTs: settings[1],
-            allowVideoNFTs: settings[2],
-            requireWhitelist: settings[3]
-          },
-          exists: roomData[6]
-        };
-
-        // Check user access if username provided
-        let hasAccess = true; // Default to true for public listing
-        if (userFarcaster && (!room.isPublic || room.settings.requireWhitelist)) {
-          hasAccess = await publicClient.readContract({
+      demoRooms.map(async (roomId) => {
+        try {
+          // Check if room exists
+          const exists = await publicClient.readContract({
             address: contractAddress,
-            abi: ROOM_MANAGER_ABI,
-            functionName: 'isUserWhitelisted',
-            args: [roomId, userFarcaster]
+            abi: METAWORKSPACE_NFT_ABI,
+            functionName: 'roomExists',
+            args: [roomId]
           }) as boolean;
-        }
 
-        return {
-          ...room,
-          hasAccess
-        };
+          if (!exists) {
+            return null;
+          }
+
+          // Get room stats
+          const roomStats = await publicClient.readContract({
+            address: contractAddress,
+            abi: METAWORKSPACE_NFT_ABI,
+            functionName: 'getRoomStats',
+            args: [roomId]
+          }) as unknown as readonly [bigint, bigint, bigint];
+
+          let hasAccess = true; // All users have access for now
+          // TODO: Implement proper room access control
+
+          return {
+            roomId,
+            name: roomId.replace(/-/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+            creator: '',
+            exists: true,
+            stats: {
+              totalNFTs: Number(roomStats[0]),
+              voiceNFTs: Number(roomStats[1]),
+              videoNFTs: Number(roomStats[2])
+            },
+            hasAccess,
+            isPublic: roomId === 'public-demo'
+          };
+        } catch (error) {
+          console.error(`Error fetching room ${roomId}:`, error);
+          return null;
+        }
       })
     );
 
-    // Filter successful room queries
-    interface RoomResult {
-      roomId: string;
-      name: string;
-      creator: Address;
-      farcasterWhitelist: string[];
-      isPublic: boolean;
-      createdAt: number;
-      settings: {
-        maxRecordingDuration: number;
-        allowVoiceNFTs: boolean;
-        allowVideoNFTs: boolean;
-        requireWhitelist: boolean;
-      };
-      exists: boolean;
-      hasAccess: boolean;
-    }
     const rooms = roomsData
-      .filter((result): result is PromiseFulfilledResult<RoomResult> => result.status === 'fulfilled')
-      .map(result => result.value)
-      .filter(room => room.exists);
+      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled' && result.value !== null)
+      .map(result => result.value);
 
-    // Filter by user access if specified
     const filteredRooms = userFarcaster 
       ? rooms.filter(room => room.hasAccess || room.isPublic)
       : rooms;
@@ -240,7 +152,7 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({
       success: true,
       rooms: filteredRooms,
-      totalRooms: Number(totalRooms),
+      totalRooms: filteredRooms.length,
       userFilter: userFarcaster || null,
       contractAddress,
       chainId: chain.id
@@ -271,11 +183,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const contractAddress = process.env.NEXT_PUBLIC_ROOM_MANAGER_ADDRESS as Address;
+    const contractAddress = process.env.NEXT_PUBLIC_METAWORKSPACE_NFT_ADDRESS as Address;
     
     if (!contractAddress) {
       return NextResponse.json(
-        { error: 'Room Manager contract not deployed' },
+        { error: 'MetaWorkspace NFT contract not deployed' },
         { status: 500 }
       );
     }
@@ -299,7 +211,7 @@ export async function POST(request: NextRequest) {
             requireWhitelist: !isPublic
           }
         ],
-        abi: ROOM_MANAGER_ABI
+        abi: METAWORKSPACE_NFT_ABI
       }
     });
 

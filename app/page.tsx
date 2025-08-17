@@ -4,6 +4,7 @@ import {
   useMiniKit,
   useAddFrame,
   useOpenUrl,
+  useViewProfile,
 } from "@coinbase/onchainkit/minikit";
 import {
   Name,
@@ -40,6 +41,7 @@ export default function App() {
   const addFrame = useAddFrame();
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const openUrl = useOpenUrl();
+  const viewProfile = useViewProfile(); // View current user's profile
 
   useEffect(() => {
     if (!isFrameReady) {
@@ -65,6 +67,10 @@ export default function App() {
   const toggleDarkMode = useCallback(() => {
     setIsDarkMode((prev: boolean) => !prev);
   }, []);
+
+  const handleViewProfile = useCallback(() => {
+    viewProfile();
+  }, [viewProfile]);
 
   const handleAddFrame = useCallback(async () => {
     const frameAdded = await addFrame();
@@ -119,6 +125,19 @@ export default function App() {
               >
                 <span className="text-lg">
                   {isDarkMode ? "☀️" : "🌙"}
+                </span>
+              </button>
+              <button
+                onClick={handleViewProfile}
+                className={`p-2 rounded-lg transition-all duration-200 ${
+                  isDarkMode 
+                    ? "bg-purple-500/20 hover:bg-purple-500/30 text-purple-400" 
+                    : "bg-purple-500/20 hover:bg-purple-500/30 text-purple-600"
+                }`}
+                title="View your Farcaster profile"
+              >
+                <span className="text-lg">
+                  👤
                 </span>
               </button>
               <Wallet className="z-10">

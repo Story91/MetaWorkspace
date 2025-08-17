@@ -74,7 +74,7 @@ export function useMiniKitFeatures() {
     await new Promise(resolve => setTimeout(resolve, 500));
   }, []);
 
-  const mockSignMessage = useCallback(async (_params: { message: string }) => {
+  const mockSignMessage = useCallback(async () => {
     // Future: Real message signing with wallet
     return `signed_${Date.now()}`;
   }, []);

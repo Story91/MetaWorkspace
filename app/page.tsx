@@ -69,8 +69,17 @@ export default function App() {
   }, []);
 
   const handleViewProfile = useCallback(() => {
-    viewProfile();
-  }, [viewProfile]);
+    console.log('Profile button clicked!');
+    console.log('isFrameReady:', isFrameReady);
+    console.log('context:', context);
+    
+    try {
+      viewProfile();
+      console.log('viewProfile() called successfully');
+    } catch (error) {
+      console.error('Error calling viewProfile:', error);
+    }
+  }, [viewProfile, isFrameReady, context]);
 
   const handleAddFrame = useCallback(async () => {
     const frameAdded = await addFrame();

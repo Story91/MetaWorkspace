@@ -238,8 +238,13 @@ export function VoiceVideoHub() {
     });
 
     // Real blockchain upload if we have a recording
-    if (recordedBlob) {
-      setTimeout(async () => {
+    // Note: recordedBlob is set asynchronously in the recording callback
+    // So we check again after a small delay
+    setTimeout(async () => {
+      const blobToUse = recordedBlob || (recorder.current ? recorder.current.getBlob() : null);
+      console.log('Blob to use for upload:', blobToUse?.size);
+      
+      if (blobToUse) {
         try {
           // Connect wallet if not connected
           if (!isWalletConnected) {
@@ -262,7 +267,7 @@ export function VoiceVideoHub() {
           });
           
           // Upload to IPFS first
-          const ipfsResult = await ipfsService.uploadFile(recordedBlob, {
+          const ipfsResult = await ipfsService.uploadFile(blobToUse, {
             type: 'voice-recording',
             name: `Voice Recording ${new Date().toISOString()}`,
             roomId: currentRoomId,
@@ -298,12 +303,12 @@ export function VoiceVideoHub() {
             body: error instanceof Error ? error.message : "Recording saved locally. Please try again."
           });
         }
-      }, 1500);
-    }
+      }
+    }, 1500);
   }, [notification, recordingDuration, currentRoomId, recordedBlob, isWalletConnected, ipfsService]);
 
   const handleJoinVideoCall = useCallback(async (meetingId: number) => {
-    const meeting = videoMeetings.find(m => m.id === meetingId);
+    const meeting = videoMeetings.find((m: { id: number; title: string; participants: number; status: string; time: string }) => m.id === meetingId);
     setIsInVideoCall(true);
     
     await notification({

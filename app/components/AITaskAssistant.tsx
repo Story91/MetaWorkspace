@@ -177,7 +177,7 @@ function MessageContent({ content }: { content: string; isUser: boolean }) {
 }
 
 export function AITaskAssistant() {
-  const { notification, userProfile, fetchUserProfile, context, viewProfile } = useMiniKitFeatures();
+  const { notification, userProfile, fetchUserProfile, context } = useMiniKitFeatures();
   
   // Load messages from localStorage on component mount
   const loadStoredMessages = (): ChatMessage[] => {
@@ -363,7 +363,7 @@ export function AITaskAssistant() {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [inputValue, isProcessing, callRealAI, notification]);
+  }, [inputValue, isProcessing, callRealAI, notification, context?.user?.fid, userProfile]);
 
   const handleQuickAction = useCallback(async (action: string, text: string) => {
     await handleSendMessage(text);

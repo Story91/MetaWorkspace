@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
       }) as unknown as readonly [bigint, bigint, bigint];
 
       // Check user access - simplified for now
-      let hasAccess = true; // All users have access for now
+      const hasAccess = true; // All users have access for now
       // TODO: Implement proper room access control
 
       const room = {
@@ -118,7 +118,7 @@ export async function GET(request: NextRequest) {
             args: [roomId]
           }) as unknown as readonly [bigint, bigint, bigint];
 
-          let hasAccess = true; // All users have access for now
+          const hasAccess = true; // All users have access for now
           // TODO: Implement proper room access control
 
           return {
@@ -141,8 +141,22 @@ export async function GET(request: NextRequest) {
       })
     );
 
+    interface RoomDataResult {
+      roomId: string;
+      name: string;
+      creator: string;
+      exists: boolean;
+      stats: {
+        totalNFTs: number;
+        voiceNFTs: number;
+        videoNFTs: number;
+      };
+      hasAccess: boolean;
+      isPublic: boolean;
+    }
+    
     const rooms = roomsData
-      .filter((result): result is PromiseFulfilledResult<any> => result.status === 'fulfilled' && result.value !== null)
+      .filter((result): result is PromiseFulfilledResult<RoomDataResult> => result.status === 'fulfilled' && result.value !== null)
       .map(result => result.value);
 
     const filteredRooms = userFarcaster 

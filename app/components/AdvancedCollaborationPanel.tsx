@@ -194,7 +194,7 @@ export function AdvancedCollaborationPanel() {
         {context && (
           <div className="neu-card p-3 text-center">
             <div className="text-xs text-[var(--app-foreground-muted)]">
-              Frame Context: {context.client?.name || "Farcaster"} • Advanced collaboration ready
+              Frame Context: {(context.client as { name?: string })?.name || "Farcaster"} • Advanced collaboration ready
             </div>
           </div>
         )}

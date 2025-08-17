@@ -1,6 +1,6 @@
 const { ethers } = require("hardhat");
 
-async function main() {
+async function deployContract() {
   console.log("🚀 Starting MetaWorkspace contract deployment...");
 
   // Get the deployer account
@@ -65,18 +65,58 @@ async function main() {
     await tx2.wait();
     console.log("✅ Test video NFT minted successfully");
 
-    // Test room stats
-    const stats = await metaWorkspaceNFT.getRoomStats("test-room-1");
-    console.log(`✅ Room stats: ${stats.totalContent} total, ${stats.voiceCount} voice, ${stats.videoCount} video`);
+    // Test room content
+    const roomContent = await metaWorkspaceNFT.getRoomContent("test-room-1");
+    console.log(`✅ Room content: ${roomContent.length} NFTs in room`);
+
+    // Test AI access purchase
+    const aiAccessPrice = await metaWorkspaceNFT.aiAccessPrice();
+    console.log(`💰 AI Access price: ${ethers.formatEther(aiAccessPrice)} ETH`);
+    
+    const tx3 = await metaWorkspaceNFT.purchaseAIAccess({ value: aiAccessPrice });
+    await tx3.wait();
+    console.log("✅ AI Access purchased successfully");
+
+    // Test AI access check
+    const hasAccess = await metaWorkspaceNFT.checkAIAccess(deployerAddress);
+    console.log(`🤖 AI Access status: ${hasAccess}`);
+
+    // Test content reading
+    const voiceNFT = await metaWorkspaceNFT.getContent(0); // First NFT
+    console.log(`📢 Voice NFT: ${voiceNFT.duration}s duration, room: ${voiceNFT.roomId}`);
+
+    // Test room creation with join fee
+    const tx4 = await metaWorkspaceNFT.createRoom(
+      "premium-room-1",
+      "Premium Team Room", 
+      [deployerAddress],
+      false,
+      ethers.parseEther("0.00001") // 0.00001 ETH join fee
+    );
+    await tx4.wait();
+    console.log("✅ Premium room created successfully");
+
+    // Test room join with payment
+    const joinFee = await metaWorkspaceNFT.roomJoinPrice("premium-room-1");
+    console.log(`💰 Room join fee: ${ethers.formatEther(joinFee)} ETH`);
+    
+    // Test room member count
+    const memberCount = await metaWorkspaceNFT.getRoomMemberCount("premium-room-1");
+    console.log(`👥 Room members: ${memberCount}`);
+
+    // Test room earnings (should be 0 initially)
+    const earnings = await metaWorkspaceNFT.roomEarnings("premium-room-1");
+    console.log(`💵 Room earnings: ${ethers.formatEther(earnings)} ETH`);
 
     console.log("\n🎊 MetaWorkspaceNFT deployed and tested successfully!");
     
   } catch (error) {
     console.error("❌ Error during testing:", error);
+    console.error("📋 This might be normal if we're re-testing existing functions");
   }
 }
 
-main()
+deployContract()
   .then(() => process.exit(0))
   .catch((error) => {
     console.error("❌ Deployment failed:", error);

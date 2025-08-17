@@ -7,8 +7,8 @@ import "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title MetaWorkspaceNFT
- * @dev Single unified NFT contract for MetaWorkspace - handles voice, video, and documents
- * @notice Optimized for UI compatibility and gas efficiency
+ * @dev Single unified NFT contract for MetaWorkspace - handles voice, video, documents + AI Access
+ * @notice Optimized for UI compatibility and gas efficiency with full admin controls
  */
 contract MetaWorkspaceNFT is ERC721, ERC721Enumerable, Ownable {
     uint256 private _tokenIdCounter;
@@ -28,50 +28,132 @@ contract MetaWorkspaceNFT is ERC721, ERC721Enumerable, Ownable {
         string[] whitelistedUsers;
     }
 
+    struct RoomStats {
+        uint256 totalContent;
+        uint256 voiceCount;
+        uint256 videoCount;
+        uint256 documentCount;
+    }
+
     // Storage mappings
     mapping(uint256 => NFTContent) private _content;
     mapping(string => uint256[]) private _roomToTokenIds;
     mapping(address => uint256[]) private _creatorToTokenIds;
+    
+    // AI Access Control
+    mapping(address => bool) public hasAIAccess;
+    uint256 public aiAccessPrice = 0.0001 ether;
+    
+    // Room Management
+    mapping(string => bool) private _roomExists;
+    mapping(string => string) private _roomNames;
+    mapping(string => string[]) private _roomWhitelist;
+    mapping(string => bool) private _roomIsPublic;
+    
+    // Room Monetization
+    mapping(string => uint256) public roomJoinPrice;
+    mapping(string => address) public roomCreator;
+    mapping(string => uint256) public roomEarnings;
+    mapping(string => address[]) public roomMembers;
+    
+
 
     // Events - wszystkie z indexed dla łatwego query przez Basescan API
     event NFTMinted(
         uint256 indexed tokenId,
         address indexed creator,
-        ContentType indexed contentType,
-        string roomId,
-        string ipfsHash,
-        uint256 timestamp
+        string indexed roomId,
+        uint8 contentType,
+        string ipfsHash
     );
 
     event VoiceNFTCreated(
         uint256 indexed tokenId,
-        address indexed creator,
         string indexed roomId,
-        uint256 duration,
-        string ipfsHash
+        string ipfsHash,
+        uint256 duration
     );
 
     event VideoNFTCreated(
         uint256 indexed tokenId,
-        address indexed creator,
         string indexed roomId,
-        uint256 duration,
-        uint256 participantCount,
-        string ipfsHash
+        string ipfsHash,
+        uint256 duration
     );
 
     event AccessGranted(
-        uint256 indexed tokenId,
-        string indexed username,
-        address indexed grantedBy
+        address indexed user,
+        string indexed roomId,
+        string username
     );
 
     event RoomActivity(
         string indexed roomId,
-        address indexed user,
         string activityType,
+        address user,
         uint256 timestamp
     );
+
+    event AIAccessGranted(
+        address indexed user,
+        uint256 payment,
+        uint256 timestamp
+    );
+
+    event AIAccessRevoked(
+        address indexed user,
+        address indexed revokedBy,
+        uint256 timestamp
+    );
+
+    event AIAccessPriceUpdated(
+        uint256 oldPrice,
+        uint256 newPrice,
+        uint256 timestamp
+    );
+
+    event RoomCreated(
+        string indexed roomId,
+        string name,
+        bool isPublic,
+        address indexed creator
+    );
+
+    event RoomUpdated(
+        string indexed roomId,
+        string newName,
+        bool isPublic,
+        address indexed updatedBy
+    );
+
+    event WithdrawalMade(
+        address indexed to,
+        uint256 amount,
+        uint256 timestamp
+    );
+
+    event RoomJoined(
+        address indexed user,
+        string indexed roomId,
+        uint256 fee,
+        uint256 timestamp
+    );
+
+    event CreatorEarningsWithdrawn(
+        address indexed creator,
+        string indexed roomId,
+        uint256 amount,
+        uint256 timestamp
+    );
+
+    event RoomJoinPriceUpdated(
+        string indexed roomId,
+        uint256 oldPrice,
+        uint256 newPrice,
+        address indexed updatedBy
+    );
+
+
 
     constructor() ERC721("MetaWorkspace NFT", "MWNFT") Ownable(msg.sender) {}
 
@@ -112,9 +194,9 @@ contract MetaWorkspaceNFT is ERC721, ERC721Enumerable, Ownable {
         _safeMint(to, tokenId);
         
         // Emit multiple events for better tracking
-        emit NFTMinted(tokenId, to, ContentType.VOICE, roomId, ipfsHash, block.timestamp);
-        emit VoiceNFTCreated(tokenId, to, roomId, duration, ipfsHash);
-        emit RoomActivity(roomId, to, "VOICE_RECORDED", block.timestamp);
+        emit NFTMinted(tokenId, to, roomId, uint8(ContentType.VOICE), ipfsHash);
+        emit VoiceNFTCreated(tokenId, roomId, ipfsHash, duration);
+        emit RoomActivity(roomId, "VOICE_RECORDED", to, block.timestamp);
         
         return tokenId;
     }
@@ -155,130 +237,246 @@ contract MetaWorkspaceNFT is ERC721, ERC721Enumerable, Ownable {
         _safeMint(to, tokenId);
         
         // Emit multiple events for better tracking
-        emit NFTMinted(tokenId, to, ContentType.VIDEO, roomId, ipfsHash, block.timestamp);
-        emit VideoNFTCreated(tokenId, to, roomId, duration, participants.length, ipfsHash);
-        emit RoomActivity(roomId, to, "VIDEO_RECORDED", block.timestamp);
+        emit NFTMinted(tokenId, to, roomId, uint8(ContentType.VIDEO), ipfsHash);
+        emit VideoNFTCreated(tokenId, roomId, ipfsHash, duration);
+        emit RoomActivity(roomId, "VIDEO_RECORDED", to, block.timestamp);
         
         return tokenId;
     }
 
-    /**
-     * @dev Get Voice NFTs by room - UI needs this
-     */
-    function getVoiceNFTsByRoom(string memory roomId) external view returns (uint256[] memory) {
-        uint256[] memory roomTokens = _roomToTokenIds[roomId];
-        uint256 count = 0;
-        
-        // Count voice NFTs
-        for (uint i = 0; i < roomTokens.length; i++) {
-            if (_content[roomTokens[i]].contentType == ContentType.VOICE) {
-                count++;
-            }
-        }
-        
-        // Create result array
-        uint256[] memory voiceTokens = new uint256[](count);
-        uint256 index = 0;
-        
-        for (uint i = 0; i < roomTokens.length; i++) {
-            if (_content[roomTokens[i]].contentType == ContentType.VOICE) {
-                voiceTokens[index++] = roomTokens[i];
-            }
-        }
-        
-        return voiceTokens;
-    }
+
+
+    // ============ ROOM MANAGEMENT ============
 
     /**
-     * @dev Get Video NFTs by room - UI needs this
+     * @dev Create room with optional join fee
      */
-    function getVideoNFTsByRoom(string memory roomId) external view returns (uint256[] memory) {
-        uint256[] memory roomTokens = _roomToTokenIds[roomId];
-        uint256 count = 0;
-        
-        // Count video NFTs
-        for (uint i = 0; i < roomTokens.length; i++) {
-            if (_content[roomTokens[i]].contentType == ContentType.VIDEO) {
-                count++;
-            }
-        }
-        
-        // Create result array
-        uint256[] memory videoTokens = new uint256[](count);
-        uint256 index = 0;
-        
-        for (uint i = 0; i < roomTokens.length; i++) {
-            if (_content[roomTokens[i]].contentType == ContentType.VIDEO) {
-                videoTokens[index++] = roomTokens[i];
-            }
-        }
-        
-        return videoTokens;
-    }
-
-    /**
-     * @dev Get Voice NFT data - UI needs this exact format
-     */
-    function getVoiceNFT(uint256 tokenId) external view returns (
-        string memory ipfsHash,
-        uint256 duration,
+    function createRoom(
         string memory roomId,
-        address creator,
-        uint256 timestamp,
-        bool isPrivate,
-        string[] memory whitelistedUsers,
-        string memory transcription
-    ) {
-        require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
-        NFTContent memory nft = _content[tokenId];
-        require(nft.contentType == ContentType.VOICE, "Not a voice NFT");
-        
-        return (
-            nft.ipfsHash,
-            nft.duration,
-            nft.roomId,
-            nft.creator,
-            nft.timestamp,
-            nft.isPrivate,
-            nft.whitelistedUsers,
-            nft.metadata
-        );
+        string memory name,
+        string[] memory farcasterWhitelist,
+        bool isPublic,
+        uint256 joinPrice
+    ) external {
+        require(!_roomExists[roomId], "Room already exists");
+        require(bytes(roomId).length > 0, "Room ID required");
+        require(bytes(name).length > 0, "Room name required");
+
+        _roomExists[roomId] = true;
+        _roomNames[roomId] = name;
+        _roomWhitelist[roomId] = farcasterWhitelist;
+        _roomIsPublic[roomId] = isPublic;
+        roomJoinPrice[roomId] = joinPrice;
+        roomCreator[roomId] = msg.sender;
+
+        // Creator automatically becomes member
+        roomMembers[roomId].push(msg.sender);
+
+        emit RoomCreated(roomId, name, isPublic, msg.sender);
+        emit RoomActivity(roomId, "ROOM_CREATED", msg.sender, block.timestamp);
     }
 
     /**
-     * @dev Get Video NFT data - UI needs this exact format
+     * @dev Add user to room whitelist
      */
-    function getVideoNFT(uint256 tokenId) external view returns (
-        string memory ipfsHash,
-        uint256 duration,
+    function addToWhitelist(string memory roomId, string memory username) external {
+        require(_roomExists[roomId], "Room doesn't exist");
+        
+        _roomWhitelist[roomId].push(username);
+        
+        emit AccessGranted(msg.sender, roomId, username);
+        emit RoomActivity(roomId, "USER_WHITELISTED", msg.sender, block.timestamp);
+    }
+
+    /**
+     * @dev Check if user is whitelisted for room
+     */
+    function isUserWhitelisted(string memory roomId, string memory username) external view returns (bool) {
+        if (_roomIsPublic[roomId]) return true;
+        
+        string[] memory whitelist = _roomWhitelist[roomId];
+        for (uint i = 0; i < whitelist.length; i++) {
+            if (keccak256(bytes(whitelist[i])) == keccak256(bytes(username))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @dev Join room with payment (if required)
+     */
+    function joinRoom(string memory roomId) external payable {
+        require(_roomExists[roomId], "Room doesn't exist");
+        require(!_isMember(roomId, msg.sender), "Already a member");
+        
+        uint256 price = roomJoinPrice[roomId];
+        if (price > 0) {
+            require(msg.value >= price, "Insufficient payment to join room");
+            
+            // 80% to room creator, 20% to contract owner
+            uint256 creatorShare = (msg.value * 80) / 100;
+            uint256 ownerShare = msg.value - creatorShare;
+            
+            roomEarnings[roomId] += creatorShare;
+            // ownerShare stays in contract for withdraw by owner
+            
+            emit RoomJoined(msg.sender, roomId, msg.value, block.timestamp);
+        }
+        
+        roomMembers[roomId].push(msg.sender);
+        emit RoomActivity(roomId, "USER_JOINED", msg.sender, block.timestamp);
+    }
+
+    /**
+     * @dev Check if user is room member
+     */
+    function _isMember(string memory roomId, address user) internal view returns (bool) {
+        address[] memory members = roomMembers[roomId];
+        for (uint i = 0; i < members.length; i++) {
+            if (members[i] == user) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * @dev Update room join price (only room creator)
+     */
+    function setRoomJoinPrice(string memory roomId, uint256 newPrice) external {
+        require(_roomExists[roomId], "Room doesn't exist");
+        require(roomCreator[roomId] == msg.sender, "Only room creator can set price");
+        
+        uint256 oldPrice = roomJoinPrice[roomId];
+        roomJoinPrice[roomId] = newPrice;
+        
+        emit RoomJoinPriceUpdated(roomId, oldPrice, newPrice, msg.sender);
+    }
+
+    // ============ AI ACCESS CONTROL ============
+
+    /**
+     * @dev Purchase AI Access with payment
+     */
+    function purchaseAIAccess() external payable {
+        require(msg.value >= aiAccessPrice, "Insufficient payment for AI access");
+        hasAIAccess[msg.sender] = true;
+        
+        emit AIAccessGranted(msg.sender, msg.value, block.timestamp);
+    }
+
+    /**
+     * @dev Check if user has AI access (payment or NFT ownership)
+     */
+    function checkAIAccess(address user) external view returns (bool) {
+        return hasAIAccess[user] || balanceOf(user) > 0;
+    }
+
+
+
+    // ============ ADMIN FUNCTIONS (ONLY OWNER) ============
+
+    /**
+     * @dev Grant AI access for free (only owner)
+     */
+    function grantAIAccess(address user) external onlyOwner {
+        hasAIAccess[user] = true;
+        emit AIAccessGranted(user, 0, block.timestamp);
+    }
+
+    /**
+     * @dev Revoke AI access (only owner)
+     */
+    function revokeAIAccess(address user) external onlyOwner {
+        hasAIAccess[user] = false;
+        emit AIAccessRevoked(user, msg.sender, block.timestamp);
+    }
+
+    /**
+     * @dev Update AI access price (only owner)
+     */
+    function setAIAccessPrice(uint256 newPrice) external onlyOwner {
+        uint256 oldPrice = aiAccessPrice;
+        aiAccessPrice = newPrice;
+        emit AIAccessPriceUpdated(oldPrice, newPrice, block.timestamp);
+    }
+
+    /**
+     * @dev Update room settings (only owner)
+     */
+    function updateRoom(
         string memory roomId,
-        address creator,
-        string[] memory participants,
-        string memory summary,
-        uint256 timestamp,
-        bool isPrivate,
-        string[] memory whitelistedUsers
-    ) {
-        require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
-        NFTContent memory nft = _content[tokenId];
-        require(nft.contentType == ContentType.VIDEO, "Not a video NFT");
+        string memory newName,
+        bool isPublic
+    ) external onlyOwner {
+        require(_roomExists[roomId], "Room doesn't exist");
         
-        return (
-            nft.ipfsHash,
-            nft.duration,
-            nft.roomId,
-            nft.creator,
-            nft.participants,
-            nft.metadata,
-            nft.timestamp,
-            nft.isPrivate,
-            nft.whitelistedUsers
-        );
+        _roomNames[roomId] = newName;
+        _roomIsPublic[roomId] = isPublic;
+        
+        emit RoomUpdated(roomId, newName, isPublic, msg.sender);
     }
 
     /**
-     * @dev Check if user has access to NFT
+     * @dev Emergency: Update NFT metadata (only owner)
      */
+    function updateNFTMetadata(uint256 tokenId, string memory newMetadata) external onlyOwner {
+        require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
+        _content[tokenId].metadata = newMetadata;
+    }
+
+    /**
+     * @dev Withdraw room earnings (only room creator)
+     */
+    function withdrawRoomEarnings(string memory roomId) external {
+        require(_roomExists[roomId], "Room doesn't exist");
+        require(roomCreator[roomId] == msg.sender, "Only room creator can withdraw");
+        
+        uint256 amount = roomEarnings[roomId];
+        require(amount > 0, "No earnings to withdraw");
+        
+        roomEarnings[roomId] = 0;
+        
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        require(success, "Withdrawal failed");
+        
+        emit CreatorEarningsWithdrawn(msg.sender, roomId, amount, block.timestamp);
+    }
+
+    /**
+     * @dev Withdraw contract funds (only owner)
+     */
+    function withdraw() external onlyOwner {
+        uint256 balance = address(this).balance;
+        
+        // Subtract all room earnings (which belong to creators)
+        uint256 reservedForCreators = 0;
+        // Note: In production, you might want to track this more efficiently
+        
+        uint256 ownerBalance = balance - reservedForCreators;
+        require(ownerBalance > 0, "No owner funds to withdraw");
+        
+        (bool success, ) = payable(owner()).call{value: ownerBalance}("");
+        require(success, "Withdrawal failed");
+        
+        emit WithdrawalMade(owner(), ownerBalance, block.timestamp);
+    }
+
+    // ============ VIEW FUNCTIONS ============
+
+    /**
+     * @dev Get complete NFT content
+     */
+    function getContent(uint256 tokenId) external view returns (NFTContent memory) {
+        require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
+        return _content[tokenId];
+    }
+
+
+
+
+
     function hasAccess(uint256 tokenId, string memory username) external view returns (bool) {
         require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
         
@@ -295,110 +493,37 @@ contract MetaWorkspaceNFT is ERC721, ERC721Enumerable, Ownable {
         return false;
     }
 
-    /**
-     * @dev Get all NFTs in a room
-     */
     function getRoomContent(string memory roomId) external view returns (uint256[] memory) {
         return _roomToTokenIds[roomId];
     }
 
-    /**
-     * @dev Get all NFTs by creator
-     */
-    function getCreatorContent(address creator) external view returns (uint256[] memory) {
-        return _creatorToTokenIds[creator];
-    }
-
-    /**
-     * @dev Room management - check if room has content
-     */
     function roomExists(string memory roomId) external view returns (bool) {
-        return _roomToTokenIds[roomId].length > 0;
+        return _roomExists[roomId];
     }
 
-    /**
-     * @dev Get room statistics
-     */
-    function getRoomStats(string memory roomId) external view returns (
-        uint256 totalContent,
-        uint256 voiceCount,
-        uint256 videoCount
-    ) {
-        uint256[] memory tokens = _roomToTokenIds[roomId];
-        totalContent = tokens.length;
-        
-        for (uint i = 0; i < tokens.length; i++) {
-            if (_content[tokens[i]].contentType == ContentType.VOICE) {
-                voiceCount++;
-            } else if (_content[tokens[i]].contentType == ContentType.VIDEO) {
-                videoCount++;
-            }
-        }
+    function getRoomMembers(string memory roomId) external view returns (address[] memory) {
+        return roomMembers[roomId];
     }
 
-    /**
-     * @dev Get NFT metadata - useful for Basescan/Etherscan display
-     */
+    function getRoomMemberCount(string memory roomId) external view returns (uint256) {
+        return roomMembers[roomId].length;
+    }
+
+    function isRoomMember(string memory roomId, address user) external view returns (bool) {
+        return _isMember(roomId, user);
+    }
+
+
+
     function tokenURI(uint256 tokenId) public view override returns (string memory) {
         require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
         
         NFTContent memory nft = _content[tokenId];
         
-        // Return IPFS URL for metadata
         return string(abi.encodePacked(
             "https://gateway.pinata.cloud/ipfs/",
             nft.ipfsHash
         ));
-    }
-
-    /**
-     * @dev Get all token IDs owned by address - for Basescan integration
-     */
-    function tokensOfOwner(address owner) external view returns (uint256[] memory) {
-        uint256 tokenCount = balanceOf(owner);
-        uint256[] memory tokens = new uint256[](tokenCount);
-        
-        for (uint256 i = 0; i < tokenCount; i++) {
-            tokens[i] = tokenOfOwnerByIndex(owner, i);
-        }
-        
-        return tokens;
-    }
-
-    /**
-     * @dev Get content type of NFT
-     */
-    function getContentType(uint256 tokenId) external view returns (ContentType) {
-        require(_ownerOf(tokenId) != address(0), "Token doesn't exist");
-        return _content[tokenId].contentType;
-    }
-
-    /**
-     * @dev Add user to whitelist (only token owner can do this)
-     */
-    function addToWhitelist(uint256 tokenId, string memory username) external {
-        require(ownerOf(tokenId) == msg.sender, "Only token owner can add to whitelist");
-        
-        _content[tokenId].whitelistedUsers.push(username);
-        
-        emit AccessGranted(tokenId, username, msg.sender);
-    }
-
-    /**
-     * @dev Get total supply by content type - for analytics
-     */
-    function getTotalSupplyByType(ContentType contentType) external view returns (uint256) {
-        uint256 total = totalSupply();
-        uint256 count = 0;
-        
-        for (uint256 i = 0; i < total; i++) {
-            uint256 tokenId = tokenByIndex(i);
-            if (_content[tokenId].contentType == contentType) {
-                count++;
-            }
-        }
-        
-        return count;
     }
 
     // Required overrides for OpenZeppelin 5.x

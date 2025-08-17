@@ -301,7 +301,9 @@ export class BlockchainStorageService {
     name: string,
     farcasterWhitelist: string[],
     isPublic: boolean = false,
-    settings?: Partial<WorkspaceRoom['settings']>
+    settings?: Partial<WorkspaceRoom['settings']>,
+    // eslint-disable-next-line @typescript-eslint/no-unused-vars
+    _joinPriceEth: string = "0"
   ): Promise<WorkspaceRoom> {
     if (!this.walletClient) {
       throw new Error('Wallet not connected');

@@ -9,6 +9,8 @@ import VoiceVideoHub from "./VoiceVideoHub";
 import AdvancedUIFeatures from "./AdvancedUIFeatures";
 import RoomManager from "./RoomManager";
 import AboutGuide from "./AboutGuide";
+import CreatorEarningsDashboard from "./CreatorEarningsDashboard";
+import ActivityFeed from "./ActivityFeed";
 
 export function MetaWorkspaceDashboard({ 
   activeTab: externalActiveTab,
@@ -40,6 +42,10 @@ export function MetaWorkspaceDashboard({
         return <AdvancedUIFeatures />;
       case "rooms":
         return <RoomManager />;
+      case "earnings":
+        return <CreatorEarningsDashboard />;
+      case "activity":
+        return <ActivityFeed />;
       case "about":
         return <AboutGuide />;
       default:
@@ -79,7 +85,8 @@ export function MetaWorkspaceDashboard({
         <div className="flex justify-between gap-1 p-2 neu-card w-full">
           {[
             { id: "rooms", icon: "🏛️" },
-            { id: "advanced", icon: "⚡" },
+            { id: "earnings", icon: "💰" },
+            { id: "activity", icon: "⚡" },
             { id: "features", icon: "🚀" },
             { id: "about", icon: "📖" }
           ].map((tab) => (

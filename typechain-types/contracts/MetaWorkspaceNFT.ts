@@ -23,61 +23,127 @@ import type {
   TypedContractMethod,
 } from "../common";
 
+export declare namespace MetaWorkspaceNFT {
+  export type NFTContentStruct = {
+    ipfsHash: string;
+    contentType: BigNumberish;
+    roomId: string;
+    creator: AddressLike;
+    duration: BigNumberish;
+    participants: string[];
+    metadata: string;
+    timestamp: BigNumberish;
+    isPrivate: boolean;
+    whitelistedUsers: string[];
+  };
+
+  export type NFTContentStructOutput = [
+    ipfsHash: string,
+    contentType: bigint,
+    roomId: string,
+    creator: string,
+    duration: bigint,
+    participants: string[],
+    metadata: string,
+    timestamp: bigint,
+    isPrivate: boolean,
+    whitelistedUsers: string[]
+  ] & {
+    ipfsHash: string;
+    contentType: bigint;
+    roomId: string;
+    creator: string;
+    duration: bigint;
+    participants: string[];
+    metadata: string;
+    timestamp: bigint;
+    isPrivate: boolean;
+    whitelistedUsers: string[];
+  };
+}
+
 export interface MetaWorkspaceNFTInterface extends Interface {
   getFunction(
     nameOrSignature:
       | "addToWhitelist"
+      | "aiAccessPrice"
       | "approve"
       | "balanceOf"
+      | "checkAIAccess"
+      | "createRoom"
       | "getApproved"
-      | "getContentType"
-      | "getCreatorContent"
+      | "getContent"
       | "getRoomContent"
-      | "getRoomStats"
-      | "getTotalSupplyByType"
-      | "getVideoNFT"
-      | "getVideoNFTsByRoom"
-      | "getVoiceNFT"
-      | "getVoiceNFTsByRoom"
+      | "getRoomMemberCount"
+      | "getRoomMembers"
+      | "grantAIAccess"
+      | "hasAIAccess"
       | "hasAccess"
       | "isApprovedForAll"
+      | "isRoomMember"
+      | "isUserWhitelisted"
+      | "joinRoom"
       | "mintVideoNFT"
       | "mintVoiceNFT"
       | "name"
       | "owner"
       | "ownerOf"
+      | "purchaseAIAccess"
       | "renounceOwnership"
+      | "revokeAIAccess"
+      | "roomCreator"
+      | "roomEarnings"
       | "roomExists"
+      | "roomJoinPrice"
+      | "roomMembers"
       | "safeTransferFrom(address,address,uint256)"
       | "safeTransferFrom(address,address,uint256,bytes)"
+      | "setAIAccessPrice"
       | "setApprovalForAll"
+      | "setRoomJoinPrice"
       | "supportsInterface"
       | "symbol"
       | "tokenByIndex"
       | "tokenOfOwnerByIndex"
       | "tokenURI"
-      | "tokensOfOwner"
       | "totalSupply"
       | "transferFrom"
       | "transferOwnership"
+      | "updateNFTMetadata"
+      | "updateRoom"
+      | "withdraw"
+      | "withdrawRoomEarnings"
   ): FunctionFragment;
 
   getEvent(
     nameOrSignatureOrTopic:
+      | "AIAccessGranted"
+      | "AIAccessPriceUpdated"
+      | "AIAccessRevoked"
       | "AccessGranted"
       | "Approval"
       | "ApprovalForAll"
+      | "CreatorEarningsWithdrawn"
       | "NFTMinted"
       | "OwnershipTransferred"
       | "RoomActivity"
+      | "RoomCreated"
+      | "RoomJoinPriceUpdated"
+      | "RoomJoined"
+      | "RoomUpdated"
       | "Transfer"
       | "VideoNFTCreated"
       | "VoiceNFTCreated"
+      | "WithdrawalMade"
   ): EventFragment;
 
   encodeFunctionData(
     functionFragment: "addToWhitelist",
-    values: [BigNumberish, string]
+    values: [string, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "aiAccessPrice",
+    values?: undefined
   ): string;
   encodeFunctionData(
     functionFragment: "approve",
@@ -88,44 +154,40 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     values: [AddressLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "checkAIAccess",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "createRoom",
+    values: [string, string, string[], boolean, BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "getApproved",
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "getContentType",
+    functionFragment: "getContent",
     values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getCreatorContent",
-    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "getRoomContent",
     values: [string]
   ): string;
   encodeFunctionData(
-    functionFragment: "getRoomStats",
+    functionFragment: "getRoomMemberCount",
     values: [string]
   ): string;
   encodeFunctionData(
-    functionFragment: "getTotalSupplyByType",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getVideoNFT",
-    values: [BigNumberish]
-  ): string;
-  encodeFunctionData(
-    functionFragment: "getVideoNFTsByRoom",
+    functionFragment: "getRoomMembers",
     values: [string]
   ): string;
   encodeFunctionData(
-    functionFragment: "getVoiceNFT",
-    values: [BigNumberish]
+    functionFragment: "grantAIAccess",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
-    functionFragment: "getVoiceNFTsByRoom",
-    values: [string]
+    functionFragment: "hasAIAccess",
+    values: [AddressLike]
   ): string;
   encodeFunctionData(
     functionFragment: "hasAccess",
@@ -135,6 +197,15 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     functionFragment: "isApprovedForAll",
     values: [AddressLike, AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "isRoomMember",
+    values: [string, AddressLike]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "isUserWhitelisted",
+    values: [string, string]
+  ): string;
+  encodeFunctionData(functionFragment: "joinRoom", values: [string]): string;
   encodeFunctionData(
     functionFragment: "mintVideoNFT",
     values: [
@@ -158,10 +229,31 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
+    functionFragment: "purchaseAIAccess",
+    values?: undefined
+  ): string;
+  encodeFunctionData(
     functionFragment: "renounceOwnership",
     values?: undefined
   ): string;
+  encodeFunctionData(
+    functionFragment: "revokeAIAccess",
+    values: [AddressLike]
+  ): string;
+  encodeFunctionData(functionFragment: "roomCreator", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "roomEarnings",
+    values: [string]
+  ): string;
   encodeFunctionData(functionFragment: "roomExists", values: [string]): string;
+  encodeFunctionData(
+    functionFragment: "roomJoinPrice",
+    values: [string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "roomMembers",
+    values: [string, BigNumberish]
+  ): string;
   encodeFunctionData(
     functionFragment: "safeTransferFrom(address,address,uint256)",
     values: [AddressLike, AddressLike, BigNumberish]
@@ -171,8 +263,16 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     values: [AddressLike, AddressLike, BigNumberish, BytesLike]
   ): string;
   encodeFunctionData(
+    functionFragment: "setAIAccessPrice",
+    values: [BigNumberish]
+  ): string;
+  encodeFunctionData(
     functionFragment: "setApprovalForAll",
     values: [AddressLike, boolean]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "setRoomJoinPrice",
+    values: [string, BigNumberish]
   ): string;
   encodeFunctionData(
     functionFragment: "supportsInterface",
@@ -192,10 +292,6 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     values: [BigNumberish]
   ): string;
   encodeFunctionData(
-    functionFragment: "tokensOfOwner",
-    values: [AddressLike]
-  ): string;
-  encodeFunctionData(
     functionFragment: "totalSupply",
     values?: undefined
   ): string;
@@ -207,51 +303,58 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     functionFragment: "transferOwnership",
     values: [AddressLike]
   ): string;
+  encodeFunctionData(
+    functionFragment: "updateNFTMetadata",
+    values: [BigNumberish, string]
+  ): string;
+  encodeFunctionData(
+    functionFragment: "updateRoom",
+    values: [string, string, boolean]
+  ): string;
+  encodeFunctionData(functionFragment: "withdraw", values?: undefined): string;
+  encodeFunctionData(
+    functionFragment: "withdrawRoomEarnings",
+    values: [string]
+  ): string;
 
   decodeFunctionResult(
     functionFragment: "addToWhitelist",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "aiAccessPrice",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "approve", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "balanceOf", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "checkAIAccess",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "createRoom", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getApproved",
     data: BytesLike
   ): Result;
-  decodeFunctionResult(
-    functionFragment: "getContentType",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getCreatorContent",
-    data: BytesLike
-  ): Result;
+  decodeFunctionResult(functionFragment: "getContent", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "getRoomContent",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getRoomStats",
+    functionFragment: "getRoomMemberCount",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getTotalSupplyByType",
+    functionFragment: "getRoomMembers",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getVideoNFT",
+    functionFragment: "grantAIAccess",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
-    functionFragment: "getVideoNFTsByRoom",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getVoiceNFT",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
-    functionFragment: "getVoiceNFTsByRoom",
+    functionFragment: "hasAIAccess",
     data: BytesLike
   ): Result;
   decodeFunctionResult(functionFragment: "hasAccess", data: BytesLike): Result;
@@ -259,6 +362,15 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     functionFragment: "isApprovedForAll",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "isRoomMember",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "isUserWhitelisted",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "joinRoom", data: BytesLike): Result;
   decodeFunctionResult(
     functionFragment: "mintVideoNFT",
     data: BytesLike
@@ -271,10 +383,34 @@ export interface MetaWorkspaceNFTInterface extends Interface {
   decodeFunctionResult(functionFragment: "owner", data: BytesLike): Result;
   decodeFunctionResult(functionFragment: "ownerOf", data: BytesLike): Result;
   decodeFunctionResult(
+    functionFragment: "purchaseAIAccess",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "renounceOwnership",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "revokeAIAccess",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "roomCreator",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "roomEarnings",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(functionFragment: "roomExists", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "roomJoinPrice",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "roomMembers",
+    data: BytesLike
+  ): Result;
   decodeFunctionResult(
     functionFragment: "safeTransferFrom(address,address,uint256)",
     data: BytesLike
@@ -284,7 +420,15 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     data: BytesLike
   ): Result;
   decodeFunctionResult(
+    functionFragment: "setAIAccessPrice",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
     functionFragment: "setApprovalForAll",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(
+    functionFragment: "setRoomJoinPrice",
     data: BytesLike
   ): Result;
   decodeFunctionResult(
@@ -302,10 +446,6 @@ export interface MetaWorkspaceNFTInterface extends Interface {
   ): Result;
   decodeFunctionResult(functionFragment: "tokenURI", data: BytesLike): Result;
   decodeFunctionResult(
-    functionFragment: "tokensOfOwner",
-    data: BytesLike
-  ): Result;
-  decodeFunctionResult(
     functionFragment: "totalSupply",
     data: BytesLike
   ): Result;
@@ -317,23 +457,91 @@ export interface MetaWorkspaceNFTInterface extends Interface {
     functionFragment: "transferOwnership",
     data: BytesLike
   ): Result;
+  decodeFunctionResult(
+    functionFragment: "updateNFTMetadata",
+    data: BytesLike
+  ): Result;
+  decodeFunctionResult(functionFragment: "updateRoom", data: BytesLike): Result;
+  decodeFunctionResult(functionFragment: "withdraw", data: BytesLike): Result;
+  decodeFunctionResult(
+    functionFragment: "withdrawRoomEarnings",
+    data: BytesLike
+  ): Result;
+}
+
+export namespace AIAccessGrantedEvent {
+  export type InputTuple = [
+    user: AddressLike,
+    payment: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [user: string, payment: bigint, timestamp: bigint];
+  export interface OutputObject {
+    user: string;
+    payment: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace AIAccessPriceUpdatedEvent {
+  export type InputTuple = [
+    oldPrice: BigNumberish,
+    newPrice: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    oldPrice: bigint,
+    newPrice: bigint,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    oldPrice: bigint;
+    newPrice: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace AIAccessRevokedEvent {
+  export type InputTuple = [
+    user: AddressLike,
+    revokedBy: AddressLike,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    user: string,
+    revokedBy: string,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    user: string;
+    revokedBy: string;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
 }
 
 export namespace AccessGrantedEvent {
   export type InputTuple = [
-    tokenId: BigNumberish,
-    username: string,
-    grantedBy: AddressLike
+    user: AddressLike,
+    roomId: string,
+    username: string
   ];
-  export type OutputTuple = [
-    tokenId: bigint,
-    username: string,
-    grantedBy: string
-  ];
+  export type OutputTuple = [user: string, roomId: string, username: string];
   export interface OutputObject {
-    tokenId: bigint;
+    user: string;
+    roomId: string;
     username: string;
-    grantedBy: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -381,30 +589,52 @@ export namespace ApprovalForAllEvent {
   export type LogDescription = TypedLogDescription<Event>;
 }
 
+export namespace CreatorEarningsWithdrawnEvent {
+  export type InputTuple = [
+    creator: AddressLike,
+    roomId: string,
+    amount: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    creator: string,
+    roomId: string,
+    amount: bigint,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    creator: string;
+    roomId: string;
+    amount: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
 export namespace NFTMintedEvent {
   export type InputTuple = [
     tokenId: BigNumberish,
     creator: AddressLike,
-    contentType: BigNumberish,
     roomId: string,
-    ipfsHash: string,
-    timestamp: BigNumberish
+    contentType: BigNumberish,
+    ipfsHash: string
   ];
   export type OutputTuple = [
     tokenId: bigint,
     creator: string,
-    contentType: bigint,
     roomId: string,
-    ipfsHash: string,
-    timestamp: bigint
+    contentType: bigint,
+    ipfsHash: string
   ];
   export interface OutputObject {
     tokenId: bigint;
     creator: string;
-    contentType: bigint;
     roomId: string;
+    contentType: bigint;
     ipfsHash: string;
-    timestamp: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -428,21 +658,121 @@ export namespace OwnershipTransferredEvent {
 export namespace RoomActivityEvent {
   export type InputTuple = [
     roomId: string,
-    user: AddressLike,
     activityType: string,
+    user: AddressLike,
     timestamp: BigNumberish
   ];
   export type OutputTuple = [
     roomId: string,
-    user: string,
     activityType: string,
+    user: string,
     timestamp: bigint
   ];
   export interface OutputObject {
     roomId: string;
-    user: string;
     activityType: string;
+    user: string;
     timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoomCreatedEvent {
+  export type InputTuple = [
+    roomId: string,
+    name: string,
+    isPublic: boolean,
+    creator: AddressLike
+  ];
+  export type OutputTuple = [
+    roomId: string,
+    name: string,
+    isPublic: boolean,
+    creator: string
+  ];
+  export interface OutputObject {
+    roomId: string;
+    name: string;
+    isPublic: boolean;
+    creator: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoomJoinPriceUpdatedEvent {
+  export type InputTuple = [
+    roomId: string,
+    oldPrice: BigNumberish,
+    newPrice: BigNumberish,
+    updatedBy: AddressLike
+  ];
+  export type OutputTuple = [
+    roomId: string,
+    oldPrice: bigint,
+    newPrice: bigint,
+    updatedBy: string
+  ];
+  export interface OutputObject {
+    roomId: string;
+    oldPrice: bigint;
+    newPrice: bigint;
+    updatedBy: string;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoomJoinedEvent {
+  export type InputTuple = [
+    user: AddressLike,
+    roomId: string,
+    fee: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [
+    user: string,
+    roomId: string,
+    fee: bigint,
+    timestamp: bigint
+  ];
+  export interface OutputObject {
+    user: string;
+    roomId: string;
+    fee: bigint;
+    timestamp: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace RoomUpdatedEvent {
+  export type InputTuple = [
+    roomId: string,
+    newName: string,
+    isPublic: boolean,
+    updatedBy: AddressLike
+  ];
+  export type OutputTuple = [
+    roomId: string,
+    newName: string,
+    isPublic: boolean,
+    updatedBy: string
+  ];
+  export interface OutputObject {
+    roomId: string;
+    newName: string;
+    isPublic: boolean;
+    updatedBy: string;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -471,27 +801,21 @@ export namespace TransferEvent {
 export namespace VideoNFTCreatedEvent {
   export type InputTuple = [
     tokenId: BigNumberish,
-    creator: AddressLike,
     roomId: string,
-    duration: BigNumberish,
-    participantCount: BigNumberish,
-    ipfsHash: string
+    ipfsHash: string,
+    duration: BigNumberish
   ];
   export type OutputTuple = [
     tokenId: bigint,
-    creator: string,
     roomId: string,
-    duration: bigint,
-    participantCount: bigint,
-    ipfsHash: string
+    ipfsHash: string,
+    duration: bigint
   ];
   export interface OutputObject {
     tokenId: bigint;
-    creator: string;
     roomId: string;
-    duration: bigint;
-    participantCount: bigint;
     ipfsHash: string;
+    duration: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -502,24 +826,39 @@ export namespace VideoNFTCreatedEvent {
 export namespace VoiceNFTCreatedEvent {
   export type InputTuple = [
     tokenId: BigNumberish,
-    creator: AddressLike,
     roomId: string,
-    duration: BigNumberish,
-    ipfsHash: string
+    ipfsHash: string,
+    duration: BigNumberish
   ];
   export type OutputTuple = [
     tokenId: bigint,
-    creator: string,
     roomId: string,
-    duration: bigint,
-    ipfsHash: string
+    ipfsHash: string,
+    duration: bigint
   ];
   export interface OutputObject {
     tokenId: bigint;
-    creator: string;
     roomId: string;
-    duration: bigint;
     ipfsHash: string;
+    duration: bigint;
+  }
+  export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
+  export type Filter = TypedDeferredTopicFilter<Event>;
+  export type Log = TypedEventLog<Event>;
+  export type LogDescription = TypedLogDescription<Event>;
+}
+
+export namespace WithdrawalMadeEvent {
+  export type InputTuple = [
+    to: AddressLike,
+    amount: BigNumberish,
+    timestamp: BigNumberish
+  ];
+  export type OutputTuple = [to: string, amount: bigint, timestamp: bigint];
+  export interface OutputObject {
+    to: string;
+    amount: bigint;
+    timestamp: bigint;
   }
   export type Event = TypedContractEvent<InputTuple, OutputTuple, OutputObject>;
   export type Filter = TypedDeferredTopicFilter<Event>;
@@ -571,10 +910,12 @@ export interface MetaWorkspaceNFT extends BaseContract {
   ): Promise<this>;
 
   addToWhitelist: TypedContractMethod<
-    [tokenId: BigNumberish, username: string],
+    [roomId: string, username: string],
     [void],
     "nonpayable"
   >;
+
+  aiAccessPrice: TypedContractMethod<[], [bigint], "view">;
 
   approve: TypedContractMethod<
     [to: AddressLike, tokenId: BigNumberish],
@@ -584,88 +925,37 @@ export interface MetaWorkspaceNFT extends BaseContract {
 
   balanceOf: TypedContractMethod<[owner: AddressLike], [bigint], "view">;
 
-  getApproved: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
+  checkAIAccess: TypedContractMethod<[user: AddressLike], [boolean], "view">;
 
-  getContentType: TypedContractMethod<
-    [tokenId: BigNumberish],
-    [bigint],
-    "view"
+  createRoom: TypedContractMethod<
+    [
+      roomId: string,
+      name: string,
+      farcasterWhitelist: string[],
+      isPublic: boolean,
+      joinPrice: BigNumberish
+    ],
+    [void],
+    "nonpayable"
   >;
 
-  getCreatorContent: TypedContractMethod<
-    [creator: AddressLike],
-    [bigint[]],
+  getApproved: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
+
+  getContent: TypedContractMethod<
+    [tokenId: BigNumberish],
+    [MetaWorkspaceNFT.NFTContentStructOutput],
     "view"
   >;
 
   getRoomContent: TypedContractMethod<[roomId: string], [bigint[]], "view">;
 
-  getRoomStats: TypedContractMethod<
-    [roomId: string],
-    [
-      [bigint, bigint, bigint] & {
-        totalContent: bigint;
-        voiceCount: bigint;
-        videoCount: bigint;
-      }
-    ],
-    "view"
-  >;
+  getRoomMemberCount: TypedContractMethod<[roomId: string], [bigint], "view">;
 
-  getTotalSupplyByType: TypedContractMethod<
-    [contentType: BigNumberish],
-    [bigint],
-    "view"
-  >;
+  getRoomMembers: TypedContractMethod<[roomId: string], [string[]], "view">;
 
-  getVideoNFT: TypedContractMethod<
-    [tokenId: BigNumberish],
-    [
-      [
-        string,
-        bigint,
-        string,
-        string,
-        string[],
-        string,
-        bigint,
-        boolean,
-        string[]
-      ] & {
-        ipfsHash: string;
-        duration: bigint;
-        roomId: string;
-        creator: string;
-        participants: string[];
-        summary: string;
-        timestamp: bigint;
-        isPrivate: boolean;
-        whitelistedUsers: string[];
-      }
-    ],
-    "view"
-  >;
+  grantAIAccess: TypedContractMethod<[user: AddressLike], [void], "nonpayable">;
 
-  getVideoNFTsByRoom: TypedContractMethod<[roomId: string], [bigint[]], "view">;
-
-  getVoiceNFT: TypedContractMethod<
-    [tokenId: BigNumberish],
-    [
-      [string, bigint, string, string, bigint, boolean, string[], string] & {
-        ipfsHash: string;
-        duration: bigint;
-        roomId: string;
-        creator: string;
-        timestamp: bigint;
-        isPrivate: boolean;
-        whitelistedUsers: string[];
-        transcription: string;
-      }
-    ],
-    "view"
-  >;
-
-  getVoiceNFTsByRoom: TypedContractMethod<[roomId: string], [bigint[]], "view">;
+  hasAIAccess: TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
 
   hasAccess: TypedContractMethod<
     [tokenId: BigNumberish, username: string],
@@ -678,6 +968,20 @@ export interface MetaWorkspaceNFT extends BaseContract {
     [boolean],
     "view"
   >;
+
+  isRoomMember: TypedContractMethod<
+    [roomId: string, user: AddressLike],
+    [boolean],
+    "view"
+  >;
+
+  isUserWhitelisted: TypedContractMethod<
+    [roomId: string, username: string],
+    [boolean],
+    "view"
+  >;
+
+  joinRoom: TypedContractMethod<[roomId: string], [void], "payable">;
 
   mintVideoNFT: TypedContractMethod<
     [
@@ -712,9 +1016,29 @@ export interface MetaWorkspaceNFT extends BaseContract {
 
   ownerOf: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
 
+  purchaseAIAccess: TypedContractMethod<[], [void], "payable">;
+
   renounceOwnership: TypedContractMethod<[], [void], "nonpayable">;
 
+  revokeAIAccess: TypedContractMethod<
+    [user: AddressLike],
+    [void],
+    "nonpayable"
+  >;
+
+  roomCreator: TypedContractMethod<[arg0: string], [string], "view">;
+
+  roomEarnings: TypedContractMethod<[arg0: string], [bigint], "view">;
+
   roomExists: TypedContractMethod<[roomId: string], [boolean], "view">;
+
+  roomJoinPrice: TypedContractMethod<[arg0: string], [bigint], "view">;
+
+  roomMembers: TypedContractMethod<
+    [arg0: string, arg1: BigNumberish],
+    [string],
+    "view"
+  >;
 
   "safeTransferFrom(address,address,uint256)": TypedContractMethod<
     [from: AddressLike, to: AddressLike, tokenId: BigNumberish],
@@ -733,8 +1057,20 @@ export interface MetaWorkspaceNFT extends BaseContract {
     "nonpayable"
   >;
 
+  setAIAccessPrice: TypedContractMethod<
+    [newPrice: BigNumberish],
+    [void],
+    "nonpayable"
+  >;
+
   setApprovalForAll: TypedContractMethod<
     [operator: AddressLike, approved: boolean],
+    [void],
+    "nonpayable"
+  >;
+
+  setRoomJoinPrice: TypedContractMethod<
+    [roomId: string, newPrice: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -757,8 +1093,6 @@ export interface MetaWorkspaceNFT extends BaseContract {
 
   tokenURI: TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
 
-  tokensOfOwner: TypedContractMethod<[owner: AddressLike], [bigint[]], "view">;
-
   totalSupply: TypedContractMethod<[], [bigint], "view">;
 
   transferFrom: TypedContractMethod<
@@ -773,6 +1107,26 @@ export interface MetaWorkspaceNFT extends BaseContract {
     "nonpayable"
   >;
 
+  updateNFTMetadata: TypedContractMethod<
+    [tokenId: BigNumberish, newMetadata: string],
+    [void],
+    "nonpayable"
+  >;
+
+  updateRoom: TypedContractMethod<
+    [roomId: string, newName: string, isPublic: boolean],
+    [void],
+    "nonpayable"
+  >;
+
+  withdraw: TypedContractMethod<[], [void], "nonpayable">;
+
+  withdrawRoomEarnings: TypedContractMethod<
+    [roomId: string],
+    [void],
+    "nonpayable"
+  >;
+
   getFunction<T extends ContractMethod = ContractMethod>(
     key: string | FunctionFragment
   ): T;
@@ -780,10 +1134,13 @@ export interface MetaWorkspaceNFT extends BaseContract {
   getFunction(
     nameOrSignature: "addToWhitelist"
   ): TypedContractMethod<
-    [tokenId: BigNumberish, username: string],
+    [roomId: string, username: string],
     [void],
     "nonpayable"
   >;
+  getFunction(
+    nameOrSignature: "aiAccessPrice"
+  ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
     nameOrSignature: "approve"
   ): TypedContractMethod<
@@ -795,86 +1152,46 @@ export interface MetaWorkspaceNFT extends BaseContract {
     nameOrSignature: "balanceOf"
   ): TypedContractMethod<[owner: AddressLike], [bigint], "view">;
   getFunction(
+    nameOrSignature: "checkAIAccess"
+  ): TypedContractMethod<[user: AddressLike], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "createRoom"
+  ): TypedContractMethod<
+    [
+      roomId: string,
+      name: string,
+      farcasterWhitelist: string[],
+      isPublic: boolean,
+      joinPrice: BigNumberish
+    ],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
     nameOrSignature: "getApproved"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
   getFunction(
-    nameOrSignature: "getContentType"
-  ): TypedContractMethod<[tokenId: BigNumberish], [bigint], "view">;
-  getFunction(
-    nameOrSignature: "getCreatorContent"
-  ): TypedContractMethod<[creator: AddressLike], [bigint[]], "view">;
+    nameOrSignature: "getContent"
+  ): TypedContractMethod<
+    [tokenId: BigNumberish],
+    [MetaWorkspaceNFT.NFTContentStructOutput],
+    "view"
+  >;
   getFunction(
     nameOrSignature: "getRoomContent"
   ): TypedContractMethod<[roomId: string], [bigint[]], "view">;
   getFunction(
-    nameOrSignature: "getRoomStats"
-  ): TypedContractMethod<
-    [roomId: string],
-    [
-      [bigint, bigint, bigint] & {
-        totalContent: bigint;
-        voiceCount: bigint;
-        videoCount: bigint;
-      }
-    ],
-    "view"
-  >;
+    nameOrSignature: "getRoomMemberCount"
+  ): TypedContractMethod<[roomId: string], [bigint], "view">;
   getFunction(
-    nameOrSignature: "getTotalSupplyByType"
-  ): TypedContractMethod<[contentType: BigNumberish], [bigint], "view">;
+    nameOrSignature: "getRoomMembers"
+  ): TypedContractMethod<[roomId: string], [string[]], "view">;
   getFunction(
-    nameOrSignature: "getVideoNFT"
-  ): TypedContractMethod<
-    [tokenId: BigNumberish],
-    [
-      [
-        string,
-        bigint,
-        string,
-        string,
-        string[],
-        string,
-        bigint,
-        boolean,
-        string[]
-      ] & {
-        ipfsHash: string;
-        duration: bigint;
-        roomId: string;
-        creator: string;
-        participants: string[];
-        summary: string;
-        timestamp: bigint;
-        isPrivate: boolean;
-        whitelistedUsers: string[];
-      }
-    ],
-    "view"
-  >;
+    nameOrSignature: "grantAIAccess"
+  ): TypedContractMethod<[user: AddressLike], [void], "nonpayable">;
   getFunction(
-    nameOrSignature: "getVideoNFTsByRoom"
-  ): TypedContractMethod<[roomId: string], [bigint[]], "view">;
-  getFunction(
-    nameOrSignature: "getVoiceNFT"
-  ): TypedContractMethod<
-    [tokenId: BigNumberish],
-    [
-      [string, bigint, string, string, bigint, boolean, string[], string] & {
-        ipfsHash: string;
-        duration: bigint;
-        roomId: string;
-        creator: string;
-        timestamp: bigint;
-        isPrivate: boolean;
-        whitelistedUsers: string[];
-        transcription: string;
-      }
-    ],
-    "view"
-  >;
-  getFunction(
-    nameOrSignature: "getVoiceNFTsByRoom"
-  ): TypedContractMethod<[roomId: string], [bigint[]], "view">;
+    nameOrSignature: "hasAIAccess"
+  ): TypedContractMethod<[arg0: AddressLike], [boolean], "view">;
   getFunction(
     nameOrSignature: "hasAccess"
   ): TypedContractMethod<
@@ -889,6 +1206,19 @@ export interface MetaWorkspaceNFT extends BaseContract {
     [boolean],
     "view"
   >;
+  getFunction(
+    nameOrSignature: "isRoomMember"
+  ): TypedContractMethod<
+    [roomId: string, user: AddressLike],
+    [boolean],
+    "view"
+  >;
+  getFunction(
+    nameOrSignature: "isUserWhitelisted"
+  ): TypedContractMethod<[roomId: string, username: string], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "joinRoom"
+  ): TypedContractMethod<[roomId: string], [void], "payable">;
   getFunction(
     nameOrSignature: "mintVideoNFT"
   ): TypedContractMethod<
@@ -928,11 +1258,29 @@ export interface MetaWorkspaceNFT extends BaseContract {
     nameOrSignature: "ownerOf"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
   getFunction(
+    nameOrSignature: "purchaseAIAccess"
+  ): TypedContractMethod<[], [void], "payable">;
+  getFunction(
     nameOrSignature: "renounceOwnership"
   ): TypedContractMethod<[], [void], "nonpayable">;
   getFunction(
+    nameOrSignature: "revokeAIAccess"
+  ): TypedContractMethod<[user: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "roomCreator"
+  ): TypedContractMethod<[arg0: string], [string], "view">;
+  getFunction(
+    nameOrSignature: "roomEarnings"
+  ): TypedContractMethod<[arg0: string], [bigint], "view">;
+  getFunction(
     nameOrSignature: "roomExists"
   ): TypedContractMethod<[roomId: string], [boolean], "view">;
+  getFunction(
+    nameOrSignature: "roomJoinPrice"
+  ): TypedContractMethod<[arg0: string], [bigint], "view">;
+  getFunction(
+    nameOrSignature: "roomMembers"
+  ): TypedContractMethod<[arg0: string, arg1: BigNumberish], [string], "view">;
   getFunction(
     nameOrSignature: "safeTransferFrom(address,address,uint256)"
   ): TypedContractMethod<
@@ -953,9 +1301,19 @@ export interface MetaWorkspaceNFT extends BaseContract {
     "nonpayable"
   >;
   getFunction(
+    nameOrSignature: "setAIAccessPrice"
+  ): TypedContractMethod<[newPrice: BigNumberish], [void], "nonpayable">;
+  getFunction(
     nameOrSignature: "setApprovalForAll"
   ): TypedContractMethod<
     [operator: AddressLike, approved: boolean],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "setRoomJoinPrice"
+  ): TypedContractMethod<
+    [roomId: string, newPrice: BigNumberish],
     [void],
     "nonpayable"
   >;
@@ -979,9 +1337,6 @@ export interface MetaWorkspaceNFT extends BaseContract {
     nameOrSignature: "tokenURI"
   ): TypedContractMethod<[tokenId: BigNumberish], [string], "view">;
   getFunction(
-    nameOrSignature: "tokensOfOwner"
-  ): TypedContractMethod<[owner: AddressLike], [bigint[]], "view">;
-  getFunction(
     nameOrSignature: "totalSupply"
   ): TypedContractMethod<[], [bigint], "view">;
   getFunction(
@@ -994,7 +1349,48 @@ export interface MetaWorkspaceNFT extends BaseContract {
   getFunction(
     nameOrSignature: "transferOwnership"
   ): TypedContractMethod<[newOwner: AddressLike], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "updateNFTMetadata"
+  ): TypedContractMethod<
+    [tokenId: BigNumberish, newMetadata: string],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "updateRoom"
+  ): TypedContractMethod<
+    [roomId: string, newName: string, isPublic: boolean],
+    [void],
+    "nonpayable"
+  >;
+  getFunction(
+    nameOrSignature: "withdraw"
+  ): TypedContractMethod<[], [void], "nonpayable">;
+  getFunction(
+    nameOrSignature: "withdrawRoomEarnings"
+  ): TypedContractMethod<[roomId: string], [void], "nonpayable">;
 
+  getEvent(
+    key: "AIAccessGranted"
+  ): TypedContractEvent<
+    AIAccessGrantedEvent.InputTuple,
+    AIAccessGrantedEvent.OutputTuple,
+    AIAccessGrantedEvent.OutputObject
+  >;
+  getEvent(
+    key: "AIAccessPriceUpdated"
+  ): TypedContractEvent<
+    AIAccessPriceUpdatedEvent.InputTuple,
+    AIAccessPriceUpdatedEvent.OutputTuple,
+    AIAccessPriceUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "AIAccessRevoked"
+  ): TypedContractEvent<
+    AIAccessRevokedEvent.InputTuple,
+    AIAccessRevokedEvent.OutputTuple,
+    AIAccessRevokedEvent.OutputObject
+  >;
   getEvent(
     key: "AccessGranted"
   ): TypedContractEvent<
@@ -1015,6 +1411,13 @@ export interface MetaWorkspaceNFT extends BaseContract {
     ApprovalForAllEvent.InputTuple,
     ApprovalForAllEvent.OutputTuple,
     ApprovalForAllEvent.OutputObject
+  >;
+  getEvent(
+    key: "CreatorEarningsWithdrawn"
+  ): TypedContractEvent<
+    CreatorEarningsWithdrawnEvent.InputTuple,
+    CreatorEarningsWithdrawnEvent.OutputTuple,
+    CreatorEarningsWithdrawnEvent.OutputObject
   >;
   getEvent(
     key: "NFTMinted"
@@ -1038,6 +1441,34 @@ export interface MetaWorkspaceNFT extends BaseContract {
     RoomActivityEvent.OutputObject
   >;
   getEvent(
+    key: "RoomCreated"
+  ): TypedContractEvent<
+    RoomCreatedEvent.InputTuple,
+    RoomCreatedEvent.OutputTuple,
+    RoomCreatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoomJoinPriceUpdated"
+  ): TypedContractEvent<
+    RoomJoinPriceUpdatedEvent.InputTuple,
+    RoomJoinPriceUpdatedEvent.OutputTuple,
+    RoomJoinPriceUpdatedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoomJoined"
+  ): TypedContractEvent<
+    RoomJoinedEvent.InputTuple,
+    RoomJoinedEvent.OutputTuple,
+    RoomJoinedEvent.OutputObject
+  >;
+  getEvent(
+    key: "RoomUpdated"
+  ): TypedContractEvent<
+    RoomUpdatedEvent.InputTuple,
+    RoomUpdatedEvent.OutputTuple,
+    RoomUpdatedEvent.OutputObject
+  >;
+  getEvent(
     key: "Transfer"
   ): TypedContractEvent<
     TransferEvent.InputTuple,
@@ -1058,9 +1489,49 @@ export interface MetaWorkspaceNFT extends BaseContract {
     VoiceNFTCreatedEvent.OutputTuple,
     VoiceNFTCreatedEvent.OutputObject
   >;
+  getEvent(
+    key: "WithdrawalMade"
+  ): TypedContractEvent<
+    WithdrawalMadeEvent.InputTuple,
+    WithdrawalMadeEvent.OutputTuple,
+    WithdrawalMadeEvent.OutputObject
+  >;
 
   filters: {
-    "AccessGranted(uint256,string,address)": TypedContractEvent<
+    "AIAccessGranted(address,uint256,uint256)": TypedContractEvent<
+      AIAccessGrantedEvent.InputTuple,
+      AIAccessGrantedEvent.OutputTuple,
+      AIAccessGrantedEvent.OutputObject
+    >;
+    AIAccessGranted: TypedContractEvent<
+      AIAccessGrantedEvent.InputTuple,
+      AIAccessGrantedEvent.OutputTuple,
+      AIAccessGrantedEvent.OutputObject
+    >;
+
+    "AIAccessPriceUpdated(uint256,uint256,uint256)": TypedContractEvent<
+      AIAccessPriceUpdatedEvent.InputTuple,
+      AIAccessPriceUpdatedEvent.OutputTuple,
+      AIAccessPriceUpdatedEvent.OutputObject
+    >;
+    AIAccessPriceUpdated: TypedContractEvent<
+      AIAccessPriceUpdatedEvent.InputTuple,
+      AIAccessPriceUpdatedEvent.OutputTuple,
+      AIAccessPriceUpdatedEvent.OutputObject
+    >;
+
+    "AIAccessRevoked(address,address,uint256)": TypedContractEvent<
+      AIAccessRevokedEvent.InputTuple,
+      AIAccessRevokedEvent.OutputTuple,
+      AIAccessRevokedEvent.OutputObject
+    >;
+    AIAccessRevoked: TypedContractEvent<
+      AIAccessRevokedEvent.InputTuple,
+      AIAccessRevokedEvent.OutputTuple,
+      AIAccessRevokedEvent.OutputObject
+    >;
+
+    "AccessGranted(address,string,string)": TypedContractEvent<
       AccessGrantedEvent.InputTuple,
       AccessGrantedEvent.OutputTuple,
       AccessGrantedEvent.OutputObject
@@ -1093,7 +1564,18 @@ export interface MetaWorkspaceNFT extends BaseContract {
       ApprovalForAllEvent.OutputObject
     >;
 
-    "NFTMinted(uint256,address,uint8,string,string,uint256)": TypedContractEvent<
+    "CreatorEarningsWithdrawn(address,string,uint256,uint256)": TypedContractEvent<
+      CreatorEarningsWithdrawnEvent.InputTuple,
+      CreatorEarningsWithdrawnEvent.OutputTuple,
+      CreatorEarningsWithdrawnEvent.OutputObject
+    >;
+    CreatorEarningsWithdrawn: TypedContractEvent<
+      CreatorEarningsWithdrawnEvent.InputTuple,
+      CreatorEarningsWithdrawnEvent.OutputTuple,
+      CreatorEarningsWithdrawnEvent.OutputObject
+    >;
+
+    "NFTMinted(uint256,address,string,uint8,string)": TypedContractEvent<
       NFTMintedEvent.InputTuple,
       NFTMintedEvent.OutputTuple,
       NFTMintedEvent.OutputObject
@@ -1115,7 +1597,7 @@ export interface MetaWorkspaceNFT extends BaseContract {
       OwnershipTransferredEvent.OutputObject
     >;
 
-    "RoomActivity(string,address,string,uint256)": TypedContractEvent<
+    "RoomActivity(string,string,address,uint256)": TypedContractEvent<
       RoomActivityEvent.InputTuple,
       RoomActivityEvent.OutputTuple,
       RoomActivityEvent.OutputObject
@@ -1124,6 +1606,50 @@ export interface MetaWorkspaceNFT extends BaseContract {
       RoomActivityEvent.InputTuple,
       RoomActivityEvent.OutputTuple,
       RoomActivityEvent.OutputObject
+    >;
+
+    "RoomCreated(string,string,bool,address)": TypedContractEvent<
+      RoomCreatedEvent.InputTuple,
+      RoomCreatedEvent.OutputTuple,
+      RoomCreatedEvent.OutputObject
+    >;
+    RoomCreated: TypedContractEvent<
+      RoomCreatedEvent.InputTuple,
+      RoomCreatedEvent.OutputTuple,
+      RoomCreatedEvent.OutputObject
+    >;
+
+    "RoomJoinPriceUpdated(string,uint256,uint256,address)": TypedContractEvent<
+      RoomJoinPriceUpdatedEvent.InputTuple,
+      RoomJoinPriceUpdatedEvent.OutputTuple,
+      RoomJoinPriceUpdatedEvent.OutputObject
+    >;
+    RoomJoinPriceUpdated: TypedContractEvent<
+      RoomJoinPriceUpdatedEvent.InputTuple,
+      RoomJoinPriceUpdatedEvent.OutputTuple,
+      RoomJoinPriceUpdatedEvent.OutputObject
+    >;
+
+    "RoomJoined(address,string,uint256,uint256)": TypedContractEvent<
+      RoomJoinedEvent.InputTuple,
+      RoomJoinedEvent.OutputTuple,
+      RoomJoinedEvent.OutputObject
+    >;
+    RoomJoined: TypedContractEvent<
+      RoomJoinedEvent.InputTuple,
+      RoomJoinedEvent.OutputTuple,
+      RoomJoinedEvent.OutputObject
+    >;
+
+    "RoomUpdated(string,string,bool,address)": TypedContractEvent<
+      RoomUpdatedEvent.InputTuple,
+      RoomUpdatedEvent.OutputTuple,
+      RoomUpdatedEvent.OutputObject
+    >;
+    RoomUpdated: TypedContractEvent<
+      RoomUpdatedEvent.InputTuple,
+      RoomUpdatedEvent.OutputTuple,
+      RoomUpdatedEvent.OutputObject
     >;
 
     "Transfer(address,address,uint256)": TypedContractEvent<
@@ -1137,7 +1663,7 @@ export interface MetaWorkspaceNFT extends BaseContract {
       TransferEvent.OutputObject
     >;
 
-    "VideoNFTCreated(uint256,address,string,uint256,uint256,string)": TypedContractEvent<
+    "VideoNFTCreated(uint256,string,string,uint256)": TypedContractEvent<
       VideoNFTCreatedEvent.InputTuple,
       VideoNFTCreatedEvent.OutputTuple,
       VideoNFTCreatedEvent.OutputObject
@@ -1148,7 +1674,7 @@ export interface MetaWorkspaceNFT extends BaseContract {
       VideoNFTCreatedEvent.OutputObject
     >;
 
-    "VoiceNFTCreated(uint256,address,string,uint256,string)": TypedContractEvent<
+    "VoiceNFTCreated(uint256,string,string,uint256)": TypedContractEvent<
       VoiceNFTCreatedEvent.InputTuple,
       VoiceNFTCreatedEvent.OutputTuple,
       VoiceNFTCreatedEvent.OutputObject
@@ -1157,6 +1683,17 @@ export interface MetaWorkspaceNFT extends BaseContract {
       VoiceNFTCreatedEvent.InputTuple,
       VoiceNFTCreatedEvent.OutputTuple,
       VoiceNFTCreatedEvent.OutputObject
+    >;
+
+    "WithdrawalMade(address,uint256,uint256)": TypedContractEvent<
+      WithdrawalMadeEvent.InputTuple,
+      WithdrawalMadeEvent.OutputTuple,
+      WithdrawalMadeEvent.OutputObject
+    >;
+    WithdrawalMade: TypedContractEvent<
+      WithdrawalMadeEvent.InputTuple,
+      WithdrawalMadeEvent.OutputTuple,
+      WithdrawalMadeEvent.OutputObject
     >;
   };
 }

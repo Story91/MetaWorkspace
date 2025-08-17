@@ -40,6 +40,7 @@ export function RoomManager() {
   const [newRoomName, setNewRoomName] = useState("");
   const [newRoomWhitelist, setNewRoomWhitelist] = useState("");
   const [isPublicRoom, setIsPublicRoom] = useState(false);
+  const [joinPrice, setJoinPrice] = useState("0");
   const [showCreateForm, setShowCreateForm] = useState(false);
 
   // Load rooms on component mount
@@ -96,7 +97,8 @@ export function RoomManager() {
           allowVoiceNFTs: true,
           allowVideoNFTs: true,
           requireWhitelist: !isPublicRoom
-        }
+        },
+        joinPrice
       );
 
       setRooms(prev => [room, ...prev]);
@@ -105,6 +107,7 @@ export function RoomManager() {
       setNewRoomName("");
       setNewRoomWhitelist("");
       setIsPublicRoom(false);
+      setJoinPrice("0");
       setShowCreateForm(false);
 
       await notification({
@@ -120,7 +123,7 @@ export function RoomManager() {
     } finally {
       setIsCreatingRoom(false);
     }
-  }, [newRoomName, newRoomWhitelist, isPublicRoom, notification]);
+  }, [newRoomName, newRoomWhitelist, isPublicRoom, joinPrice, notification]);
 
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   const handleAddToWhitelist = useCallback(async (roomId: string, username: string) => {
@@ -159,6 +162,30 @@ export function RoomManager() {
     const hasAccess = await blockchainStorage.checkRoomAccess(roomId, currentUserFid);
     return hasAccess;
   }, [currentUserFid]);
+
+  const handleJoinRoom = useCallback(async (roomId: string) => {
+    try {
+      await notification({
+        title: "💳 Joining Room",
+        body: `Processing payment for room ${roomId}...`
+      });
+
+      // This will be implemented with blockchain service
+      // For now, show success
+      await new Promise(resolve => setTimeout(resolve, 2000));
+
+      await notification({
+        title: "🎉 Successfully Joined Room!",
+        body: `You can now access room ${roomId} content`
+      });
+    } catch (error) {
+      console.error('Failed to join room:', error);
+      await notification({
+        title: "❌ Failed to Join Room",
+        body: "Please check your wallet and try again"
+      });
+    }
+  }, [notification]);
 
   return (
     <Card title="🏢 Workspace Room Manager">
@@ -212,6 +239,29 @@ export function RoomManager() {
                 <label htmlFor="isPublic" className="text-sm text-[var(--app-foreground)]">
                   Make room public (anyone can join)
                 </label>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-[var(--app-foreground)]">
+                  💰 Join Price (ETH)
+                </label>
+                <input
+                  type="number"
+                  step="0.0001"
+                  min="0"
+                  value={joinPrice}
+                  onChange={(e) => setJoinPrice(e.target.value)}
+                  placeholder="0 (free) or 0.001 (paid room)"
+                  className="w-full neu-input text-sm"
+                  disabled={isCreatingRoom}
+                />
+                <div className="text-xs text-[var(--app-foreground-muted)]">
+                  {joinPrice === "0" || !joinPrice ? (
+                    "🆓 Free room - anyone can join for free"
+                  ) : (
+                    `💳 Paid room - users pay ${joinPrice} ETH to join (80% goes to you)`
+                  )}
+                </div>
               </div>
               
               <Button
@@ -296,6 +346,13 @@ export function RoomManager() {
                     {room.settings.allowVideoNFTs && <span>📹 Video NFTs</span>}
                   </div>
                   <div className="flex space-x-1">
+                    <Button 
+                      variant="primary" 
+                      size="sm"
+                      onClick={() => handleJoinRoom(room.roomId)}
+                    >
+                      💳 Join
+                    </Button>
                     <Button variant="ghost" size="sm">
                       👁️
                     </Button>

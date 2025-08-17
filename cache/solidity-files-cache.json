@@ -2,8 +2,8 @@
   "_format": "hh-sol-cache-2",
   "files": {
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\contracts\\MetaWorkspaceNFT.sol": {
-      "lastModificationDate": 1755443807188,
-      "contentHash": "b5724d273a09ce4364d207bf53f50adb",
+      "lastModificationDate": 1755465055100,
+      "contentHash": "683018828a121629f18386e78fbe8a0d",
       "sourceName": "contracts/MetaWorkspaceNFT.sol",
       "solcConfig": {
         "version": "0.8.20",
@@ -39,50 +39,6 @@
       ],
       "artifacts": [
         "MetaWorkspaceNFT"
-      ]
-    },
-    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
-      "lastModificationDate": 1755442372400,
-      "contentHash": "522ec023bce510c30dfbf61584f5a190",
-      "sourceName": "@openzeppelin/contracts/token/ERC721/ERC721.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./IERC721.sol",
-        "./extensions/IERC721Metadata.sol",
-        "./utils/ERC721Utils.sol",
-        "../../utils/Context.sol",
-        "../../utils/Strings.sol",
-        "../../utils/introspection/ERC165.sol",
-        "../../interfaces/draft-IERC6093.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ERC721"
       ]
     },
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\access\\Ownable.sol": {
@@ -163,6 +119,50 @@
         "ERC721Enumerable"
       ]
     },
+    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\ERC721.sol": {
+      "lastModificationDate": 1755442372400,
+      "contentHash": "522ec023bce510c30dfbf61584f5a190",
+      "sourceName": "@openzeppelin/contracts/token/ERC721/ERC721.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC721.sol",
+        "./extensions/IERC721Metadata.sol",
+        "./utils/ERC721Utils.sol",
+        "../../utils/Context.sol",
+        "../../utils/Strings.sol",
+        "../../utils/introspection/ERC165.sol",
+        "../../interfaces/draft-IERC6093.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ERC721"
+      ]
+    },
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\Context.sol": {
       "lastModificationDate": 1755442372370,
       "contentHash": "67bfbc07588eb8683b3fd8f6f909563e",
@@ -197,6 +197,82 @@
       ],
       "artifacts": [
         "Context"
+      ]
+    },
+    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\ERC165.sol": {
+      "lastModificationDate": 1755442372391,
+      "contentHash": "0906d06dca25210d4696dcef6dad2909",
+      "sourceName": "@openzeppelin/contracts/utils/introspection/ERC165.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./IERC165.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "ERC165"
+      ]
+    },
+    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Enumerable.sol": {
+      "lastModificationDate": 1755442372431,
+      "contentHash": "09d80d577d5abfc679455e7b67c5b537",
+      "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "../IERC721.sol"
+      ],
+      "versionPragmas": [
+        ">=0.6.2"
+      ],
+      "artifacts": [
+        "IERC721Enumerable"
       ]
     },
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\Strings.sol": {
@@ -277,44 +353,6 @@
         "IERC721Errors"
       ]
     },
-    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\introspection\\ERC165.sol": {
-      "lastModificationDate": 1755442372391,
-      "contentHash": "0906d06dca25210d4696dcef6dad2909",
-      "sourceName": "@openzeppelin/contracts/utils/introspection/ERC165.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "./IERC165.sol"
-      ],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "ERC165"
-      ]
-    },
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\IERC721.sol": {
       "lastModificationDate": 1755442372430,
       "contentHash": "f62e11dbd302e17a5621a1438f4e054c",
@@ -351,44 +389,6 @@
       ],
       "artifacts": [
         "IERC721"
-      ]
-    },
-    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
-      "lastModificationDate": 1755442372432,
-      "contentHash": "136c64eca25bcb8a68f43ac6605559f9",
-      "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../IERC721.sol"
-      ],
-      "versionPragmas": [
-        ">=0.6.2"
-      ],
-      "artifacts": [
-        "IERC721Metadata"
       ]
     },
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\utils\\ERC721Utils.sol": {
@@ -430,10 +430,10 @@
         "ERC721Utils"
       ]
     },
-    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
-      "lastModificationDate": 1755442372458,
-      "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
-      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
+    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Metadata.sol": {
+      "lastModificationDate": 1755442372432,
+      "contentHash": "136c64eca25bcb8a68f43ac6605559f9",
+      "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol",
       "solcConfig": {
         "version": "0.8.20",
         "settings": {
@@ -459,49 +459,13 @@
         }
       },
       "imports": [
-        "./SafeCast.sol"
+        "../IERC721.sol"
       ],
       "versionPragmas": [
-        "^0.8.20"
+        ">=0.6.2"
       ],
       "artifacts": [
-        "SignedMath"
-      ]
-    },
-    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeCast.sol": {
-      "lastModificationDate": 1755442372456,
-      "contentHash": "2adca1150f58fc6f3d1f0a0f22ee7cca",
-      "sourceName": "@openzeppelin/contracts/utils/math/SafeCast.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [],
-      "versionPragmas": [
-        "^0.8.20"
-      ],
-      "artifacts": [
-        "SafeCast"
+        "IERC721Metadata"
       ]
     },
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\math\\Math.sol": {
@@ -541,6 +505,80 @@
       ],
       "artifacts": [
         "Math"
+      ]
+    },
+    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SafeCast.sol": {
+      "lastModificationDate": 1755442372456,
+      "contentHash": "2adca1150f58fc6f3d1f0a0f22ee7cca",
+      "sourceName": "@openzeppelin/contracts/utils/math/SafeCast.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SafeCast"
+      ]
+    },
+    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\math\\SignedMath.sol": {
+      "lastModificationDate": 1755442372458,
+      "contentHash": "ae3528afb8bdb0a7dcfba5b115ee8074",
+      "sourceName": "@openzeppelin/contracts/utils/math/SignedMath.sol",
+      "solcConfig": {
+        "version": "0.8.20",
+        "settings": {
+          "optimizer": {
+            "enabled": true,
+            "runs": 200
+          },
+          "evmVersion": "paris",
+          "outputSelection": {
+            "*": {
+              "*": [
+                "abi",
+                "evm.bytecode",
+                "evm.deployedBytecode",
+                "evm.methodIdentifiers",
+                "metadata"
+              ],
+              "": [
+                "ast"
+              ]
+            }
+          }
+        }
+      },
+      "imports": [
+        "./SafeCast.sol"
+      ],
+      "versionPragmas": [
+        "^0.8.20"
+      ],
+      "artifacts": [
+        "SignedMath"
       ]
     },
     "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\utils\\Panic.sol": {
@@ -649,44 +687,6 @@
       ],
       "artifacts": [
         "IERC721Receiver"
-      ]
-    },
-    "C:\\Users\\Cezary\\Documents\\Aplikacje SaaS\\BBQ9\\MetaWorkspace\\node_modules\\@openzeppelin\\contracts\\token\\ERC721\\extensions\\IERC721Enumerable.sol": {
-      "lastModificationDate": 1755442372431,
-      "contentHash": "09d80d577d5abfc679455e7b67c5b537",
-      "sourceName": "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol",
-      "solcConfig": {
-        "version": "0.8.20",
-        "settings": {
-          "optimizer": {
-            "enabled": true,
-            "runs": 200
-          },
-          "evmVersion": "paris",
-          "outputSelection": {
-            "*": {
-              "*": [
-                "abi",
-                "evm.bytecode",
-                "evm.deployedBytecode",
-                "evm.methodIdentifiers",
-                "metadata"
-              ],
-              "": [
-                "ast"
-              ]
-            }
-          }
-        }
-      },
-      "imports": [
-        "../IERC721.sol"
-      ],
-      "versionPragmas": [
-        ">=0.6.2"
-      ],
-      "artifacts": [
-        "IERC721Enumerable"
       ]
     }
   }

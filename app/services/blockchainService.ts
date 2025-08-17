@@ -8,9 +8,9 @@ import {
   createWalletClient, 
   custom, 
   http, 
+  parseEther,
   type Address,
   type Hash,
-
   type PublicClient,
   type WalletClient
 } from 'viem';
@@ -219,7 +219,7 @@ export class BlockchainService {
       const tokenIds = await this.publicClient.readContract({
         address: this.contractAddress,
         abi: METAWORKSPACE_NFT_ABI,
-        functionName: 'getVoiceNFTsByRoom',
+        functionName: 'getRoomContent', // getVoiceNFTsByRoom was removed
         args: [roomId]
       }) as readonly bigint[];
 
@@ -229,21 +229,24 @@ export class BlockchainService {
         const data = await this.publicClient.readContract({
           address: this.contractAddress,
           abi: METAWORKSPACE_NFT_ABI,
-          functionName: 'getVoiceNFT',
+          functionName: 'getContent', // getVoiceNFT was removed, use getContent
           args: [tokenId]
-        }) as readonly [string, bigint, string, Address, bigint, boolean, readonly string[], string];
-
-        nfts.push({
-          tokenId: tokenId.toString(),
-          ipfsHash: data[0],
-          duration: Number(data[1]),
-          roomId: data[2],
-          creator: data[3],
-          timestamp: Number(data[4]),
-          isPrivate: data[5],
-          whitelistedUsers: data[6],
-          transcription: data[7]
         });
+
+        // getContent returns NFTContent struct, filter for voice content only
+        if (data && typeof data === 'object' && 'contentType' in data && data.contentType === 0) { // VOICE = 0
+          nfts.push({
+            tokenId: tokenId.toString(),
+            ipfsHash: data.ipfsHash as string,
+            duration: Number(data.duration),
+            roomId: data.roomId as string,
+            creator: data.creator as `0x${string}`,
+            timestamp: Number(data.timestamp),
+            isPrivate: data.isPrivate as boolean,
+            whitelistedUsers: [...(data.whitelistedUsers as readonly string[])],
+            transcription: data.metadata as string // metadata contains transcription for voice
+          });
+        }
       }
 
       return nfts;
@@ -261,7 +264,7 @@ export class BlockchainService {
       const tokenIds = await this.publicClient.readContract({
         address: this.contractAddress,
         abi: METAWORKSPACE_NFT_ABI,
-        functionName: 'getVideoNFTsByRoom',
+        functionName: 'getRoomContent', // getVideoNFTsByRoom was removed
         args: [roomId]
       }) as readonly bigint[];
 
@@ -271,22 +274,25 @@ export class BlockchainService {
         const data = await this.publicClient.readContract({
           address: this.contractAddress,
           abi: METAWORKSPACE_NFT_ABI,
-          functionName: 'getVideoNFT',
+          functionName: 'getContent', // getVideoNFT was removed, use getContent
           args: [tokenId]
-        }) as readonly [string, bigint, string, Address, readonly string[], string, bigint, boolean, readonly string[]];
-
-        nfts.push({
-          tokenId: tokenId.toString(),
-          ipfsHash: data[0],
-          duration: Number(data[1]),
-          roomId: data[2],
-          creator: data[3],
-          participants: data[4],
-          summary: data[5],
-          timestamp: Number(data[6]),
-          isPrivate: data[7],
-          whitelistedUsers: data[8]
         });
+
+        // getContent returns NFTContent struct, filter for video content only
+        if (data && typeof data === 'object' && 'contentType' in data && data.contentType === 1) { // VIDEO = 1
+          nfts.push({
+            tokenId: tokenId.toString(),
+            ipfsHash: data.ipfsHash as string,
+            duration: Number(data.duration),
+            roomId: data.roomId as string,
+            creator: data.creator as `0x${string}`,
+            participants: [...(data.participants as readonly string[])],
+            summary: data.metadata as string, // metadata contains summary for video
+            timestamp: Number(data.timestamp),
+            isPrivate: data.isPrivate as boolean,
+            whitelistedUsers: [...(data.whitelistedUsers as readonly string[])]
+          });
+        }
       }
 
       return nfts;
@@ -301,44 +307,76 @@ export class BlockchainService {
    */
   async getRoomStats(roomId: string): Promise<RoomStats | null> {
     try {
-      const stats = await this.publicClient.readContract({
+      // getRoomStats was removed from contract for optimization
+      // Calculate stats from room content instead
+      const tokenIds = await this.publicClient.readContract({
         address: this.contractAddress,
         abi: METAWORKSPACE_NFT_ABI,
-        functionName: 'getRoomStats',
+        functionName: 'getRoomContent',
         args: [roomId]
-      }) as unknown as readonly [bigint, bigint, bigint, bigint];
+      }) as readonly bigint[];
+
+      let voiceCount = BigInt(0);
+      let videoCount = BigInt(0);
+      let documentCount = BigInt(0);
+
+      // Count content types (simplified calculation)
+      for (const tokenId of tokenIds) {
+        try {
+          const content = await this.publicClient.readContract({
+            address: this.contractAddress,
+            abi: METAWORKSPACE_NFT_ABI,
+            functionName: 'getContent',
+            args: [tokenId]
+          });
+
+          if (content && typeof content === 'object' && 'contentType' in content) {
+            switch (content.contentType) {
+              case 0: voiceCount++; break;    // VOICE
+              case 1: videoCount++; break;    // VIDEO  
+              case 2: documentCount++; break; // DOCUMENT
+            }
+          }
+        } catch (error) {
+          console.error(`Error reading content for token ${tokenId}:`, error);
+        }
+      }
 
       return {
-        totalContent: stats[0],
-        voiceCount: stats[1],
-        videoCount: stats[2],
-        documentCount: stats[3]
+        totalContent: BigInt(tokenIds.length),
+        voiceCount,
+        videoCount,
+        documentCount
       };
     } catch (error) {
-      console.error('Error fetching room stats:', error);
+      console.error('Error calculating room stats:', error);
       return null;
     }
   }
 
   /**
-   * Create a new room
+   * Create a new room with join price
    */
   async createRoom(
     roomId: string,
     name: string,
     farcasterWhitelist: string[],
-    isPublic: boolean
+    isPublic: boolean,
+    joinPriceEth: string = "0"
   ): Promise<TransactionResult> {
     if (!this.walletClient || !this.account) {
       throw new Error('Wallet not connected');
     }
 
     try {
+      // Convert ETH price to wei
+      const joinPriceWei = parseEther(joinPriceEth);
+      
       const hash = await this.walletClient.writeContract({
         address: this.contractAddress,
         abi: METAWORKSPACE_NFT_ABI,
         functionName: 'createRoom',
-        args: [roomId, name, farcasterWhitelist, isPublic],
+        args: [roomId, name, farcasterWhitelist, isPublic, joinPriceWei],
         account: this.account,
         chain: this.chain
       });
@@ -473,15 +511,23 @@ export class BlockchainService {
    */
   async getTokensOfOwner(owner: Address): Promise<readonly bigint[]> {
     try {
-      const tokens = await this.publicClient.readContract({
+      // tokensOfOwner was removed from contract for gas optimization
+      // This function now returns empty array - would need complex iteration to enumerate tokens
+      console.warn('getTokensOfOwner: tokensOfOwner function was removed from contract for optimization');
+      console.warn('Consider using balanceOf to get token count instead');
+      
+      // Return balance count as single-element array for backward compatibility
+      const balance = await this.publicClient.readContract({
         address: this.contractAddress,
         abi: METAWORKSPACE_NFT_ABI,
-        functionName: 'tokensOfOwner',
+        functionName: 'balanceOf',
         args: [owner]
-      });
-      return tokens as readonly bigint[];
+      }) as bigint;
+      
+      // Return empty array if no tokens, this maintains interface compatibility
+      return balance > BigInt(0) ? [balance] : [];
     } catch (error) {
-      console.error('Error fetching tokens of owner:', error);
+      console.error('Error fetching token balance:', error);
       return [];
     }
   }

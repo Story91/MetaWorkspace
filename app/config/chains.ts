@@ -15,8 +15,8 @@ export interface ChainConfig {
 
 // Contract addresses for different networks
 export const CONTRACT_ADDRESSES = {
-  baseSepolia: '0x7EA575edDe56F6A7d5D711937B23afd16F061601' as const,
-  base: '0x0000000000000000000000000000000000000000' as const, // TODO: Deploy to mainnet
+  baseSepolia: '0x1f6F0c63b25Eb3d29BDDc221C3048E0D6C889cb2' as const, // Old testnet
+  base: '0x3e9747E50635bC453071504cf959CFbdD3F736e4' as const, // DEPLOYED TO MAINNET ✅
 } as const;
 
 // Chain configurations
@@ -49,21 +49,9 @@ export function getCurrentChainConfig(): ChainConfig {
     return CHAIN_CONFIGS[targetNetwork];
   }
 
-  // Fallback to environment-based detection
-  const isProduction = process.env.NODE_ENV === 'production';
-  const isDevelopment = process.env.NODE_ENV === 'development';
-  
-  if (isProduction) {
-    console.log('🚀 Production mode: Using Base Mainnet');
-    return CHAIN_CONFIGS.base;
-  } else if (isDevelopment) {
-    console.log('🧪 Development mode: Using Base Sepolia');
-    return CHAIN_CONFIGS.baseSepolia;
-  }
-  
-  // Default to testnet for safety
-  console.log('⚠️ Unknown environment: Defaulting to Base Sepolia');
-  return CHAIN_CONFIGS.baseSepolia;
+  // FORCE MAINNET: We've deployed to mainnet, always use Base Mainnet
+  console.log('🚀 MetaWorkspace: Using Base Mainnet');
+  return CHAIN_CONFIGS.base;
 }
 
 /**

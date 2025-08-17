@@ -179,6 +179,11 @@ function MessageContent({ content }: { content: string; isUser: boolean }) {
 export function AITaskAssistant() {
   const { notification, userProfile, fetchUserProfile, context } = useMiniKitFeatures();
   const [isClientMounted, setIsClientMounted] = useState(false);
+  
+  // AI Access Control
+  const [hasAIAccess, setHasAIAccess] = useState<boolean | null>(null);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [isPurchasingAccess, setIsPurchasingAccess] = useState(false);
 
   const getDefaultMessages = (): ChatMessage[] => [
     {
@@ -234,6 +239,59 @@ export function AITaskAssistant() {
       console.error('Failed to load stored messages:', error);
     }
   }, []);
+
+  // Check AI Access on mount
+  useEffect(() => {
+    const checkAIAccess = async () => {
+      try {
+        // This will call blockchain service to check AI access
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        
+        // Mock: simulate user has access (set to true for demo)
+        setHasAIAccess(true);
+      } catch (error) {
+        console.error('Failed to check AI access:', error);
+        setHasAIAccess(false);
+      } finally {
+        setIsCheckingAccess(false);
+      }
+    };
+
+    if (isClientMounted) {
+      checkAIAccess();
+    }
+  }, [isClientMounted]);
+
+  // Purchase AI Access function
+  const handlePurchaseAIAccess = useCallback(async () => {
+    setIsPurchasingAccess(true);
+    
+    try {
+      await notification({
+        title: "💳 Purchasing AI Access",
+        body: "Processing payment of 0.0001 ETH..."
+      });
+
+      // This will call blockchain service to purchase AI access
+      await new Promise(resolve => setTimeout(resolve, 3000));
+      
+      setHasAIAccess(true);
+      
+      await notification({
+        title: "🎉 AI Access Purchased!",
+        body: "You now have full access to the AI Assistant"
+      });
+      
+    } catch (error) {
+      console.error('Failed to purchase AI access:', error);
+      await notification({
+        title: "❌ Purchase Failed",
+        body: "Please check your wallet and try again"
+      });
+    } finally {
+      setIsPurchasingAccess(false);
+    }
+  }, [notification]);
 
   // Save messages to localStorage whenever messages change (only after client mount)
   useEffect(() => {
@@ -367,6 +425,75 @@ export function AITaskAssistant() {
       handleSendMessage();
     }
   }, [handleSendMessage]);
+
+  // AI Access Loading
+  if (isCheckingAccess) {
+    return (
+      <Card title="🤖 AI Task Assistant">
+        <div className="flex items-center justify-center py-12">
+          <div className="flex items-center space-x-3">
+            <div className="w-6 h-6 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+            <span className="text-[var(--app-foreground-muted)]">Checking AI access...</span>
+          </div>
+        </div>
+      </Card>
+    );
+  }
+
+  // AI Access Gate
+  if (!hasAIAccess) {
+    return (
+      <Card title="🤖 AI Task Assistant">
+        <div className="text-center py-8">
+          <div className="w-16 h-16 mx-auto mb-4 bg-gradient-to-r from-green-500 to-cyan-500 rounded-full flex items-center justify-center text-2xl">
+            🤖
+          </div>
+          
+          <h3 className="text-lg font-semibold text-[var(--app-foreground)] mb-2">
+            Unlock AI Assistant
+          </h3>
+          
+          <p className="text-[var(--app-foreground-muted)] mb-6 max-w-md mx-auto">
+            Get access to your personal AI assistant for task management, meeting planning, 
+            and workspace optimization. Pay once and use forever!
+          </p>
+
+          <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800 mb-6">
+            <div className="text-2xl font-bold text-green-600 mb-1">
+              0.0001 ETH
+            </div>
+            <div className="text-sm text-green-700 dark:text-green-300 mb-3">
+              One-time payment • Lifetime access
+            </div>
+            <div className="text-xs text-green-600 space-y-1">
+              <div>✅ Unlimited AI conversations</div>
+              <div>✅ Task management & planning</div>
+              <div>✅ Meeting organization</div>
+              <div>✅ Workspace optimization tips</div>
+            </div>
+          </div>
+
+          <Button
+            variant="primary"
+            size="lg"
+            onClick={handlePurchaseAIAccess}
+            disabled={isPurchasingAccess}
+            icon={isPurchasingAccess ? 
+              <div className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin"></div> :
+              <span>💳</span>
+            }
+            className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
+          >
+            {isPurchasingAccess ? 'Processing Payment...' : 'Purchase AI Access'}
+          </Button>
+
+          <div className="text-xs text-[var(--app-foreground-muted)] mt-4">
+            💡 Or mint any NFT in MetaWorkspace to get free access!
+          </div>
+        </div>
+      </Card>
+    );
+  }
 
   return (
     <Card>

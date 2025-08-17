@@ -41,25 +41,13 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     }) as boolean;
 
     if (roomExists) {
-      // Get room statistics from contract
-      const stats = await publicClient.readContract({
-        address: chainConfig.contractAddress,
-        abi: METAWORKSPACE_NFT_ABI,
-        functionName: 'getRoomStats',
-        args: [roomId]
-      }) as {
-        totalContent: bigint;
-        voiceCount: bigint;
-        videoCount: bigint;
-        documentCount: bigint;
-      };
-
+      // Get basic room data (getRoomStats was removed to optimize contract size)
       const roomStats: RoomStats = {
         roomId,
-        totalContent: Number(stats.totalContent || 0),
-        voiceCount: Number(stats.voiceCount || 0),
-        videoCount: Number(stats.videoCount || 0),
-        documentCount: Number(stats.documentCount || 0),
+        totalContent: 0, // Can be calculated from getRoomContent if needed
+        voiceCount: 0,   // Can be calculated from content types
+        videoCount: 0,   // Can be calculated from content types  
+        documentCount: 0,
         verified: true,
         lastActivity: new Date().toISOString()
       };

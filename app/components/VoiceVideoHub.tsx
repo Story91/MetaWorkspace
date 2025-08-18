@@ -65,7 +65,8 @@ export function VoiceVideoHub() {
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
   const [voiceNFTs, setVoiceNFTs] = useState<VoiceNFT[]>([]);
   const [currentRoomId] = useState("metaworkspace-main-room");
-  const [isWalletConnected, setIsWalletConnected] = useState(false);
+  // Remove unused isWalletConnected state
+  // const [isWalletConnected, setIsWalletConnected] = useState(false);
   const ipfsService = useMemo(() => new IPFSStorageService(), []);
   
   // Voice Rooms State (mockup)
@@ -81,7 +82,14 @@ export function VoiceVideoHub() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [playingNFTId, setPlayingNFTId] = useState<string | null>(null);
   const [isMinting, setIsMinting] = useState(false);
-  const [nftTransactionCalls, setNftTransactionCalls] = useState<any[]>([]);
+  const [nftTransactionCalls, setNftTransactionCalls] = useState<Array<{ to: `0x${string}`; data: `0x${string}` }>>([]);
+
+  // Utility function for formatting duration
+  const formatDuration = useCallback((seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, []);
 
   // Prepare NFT minting transaction calls for OnchainKit
   const prepareNFTMinting = useCallback(async (ipfsHash: string, duration: number, roomId: string, transcription: string) => {
@@ -114,7 +122,7 @@ export function VoiceVideoHub() {
   }, [address]);
 
   // Transaction success handler for OnchainKit
-  const handleNFTTransactionSuccess = useCallback(async (response: any) => {
+  const handleNFTTransactionSuccess = useCallback(async (response: unknown) => {
     console.log('✅ NFT Transaction successful:', response);
     
     setIsMinting(false);
@@ -153,13 +161,13 @@ export function VoiceVideoHub() {
   }, [notification, currentRoomId]);
 
   // Transaction error handler for OnchainKit
-  const handleNFTTransactionError = useCallback((error: any) => {
+  const handleNFTTransactionError = useCallback((error: unknown) => {
     console.error('❌ NFT Transaction failed:', error);
     setIsMinting(false);
     
     notification({
       title: "❌ NFT Minting Failed",
-      body: error?.message || "Failed to mint NFT"
+      body: (error as { message?: string })?.message || "Failed to mint NFT"
     });
     
     // Clear transaction calls
@@ -521,7 +529,7 @@ export function VoiceVideoHub() {
         });
       }
     }, 1500);
-  }, [notification, recordingDuration, currentRoomId, recordedBlob, isWalletConnected, ipfsService]);
+  }, [notification, recordingDuration, currentRoomId, recordedBlob, address, ipfsService, formatDuration, prepareNFTMinting]);
 
   const handleJoinVoiceRoom = useCallback(async (roomId: number) => {
     const room = voiceRooms.find((r) => r.id === roomId);
@@ -546,12 +554,6 @@ export function VoiceVideoHub() {
       body: "Real-time voice translation activated"
     });
   }, [notification]);
-
-  const formatDuration = useCallback((seconds: number) => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  }, []);
 
   const handlePlayVoiceNFT = useCallback(async (nft: VoiceNFT) => {
     try {
@@ -666,7 +668,7 @@ export function VoiceVideoHub() {
         body: "Unable to load audio from IPFS. The file might still be processing."
       });
     }
-  }, [playingNFTId, notification]);
+  }, [playingNFTId, notification, formatDuration]);
 
   const handleViewTransaction = useCallback((nft: VoiceNFT) => {
     // Use proper Basescan NFT format: /nft/CONTRACT_ADDRESS/TOKEN_ID
@@ -859,106 +861,114 @@ export function VoiceVideoHub() {
         </div>
 
         {/* Voice Rooms Section */}
-        <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
-          <div className="flex items-center space-x-2 mb-4">
-            <Icon name="star" className="text-orange-500" />
-            <span className="text-sm font-medium text-[var(--app-foreground)]">Voice Rooms</span>
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 p-3 rounded-lg border border-[var(--app-accent-light)]">
+          <div className="flex items-center space-x-1 mb-3">
+            <span className="text-orange-500 text-xs">⭐</span>
+            <span className="text-xs font-medium text-[var(--app-foreground)]">Voice Rooms</span>
           </div>
 
-          <div className="space-y-3">
+          <div className="space-y-2">
             {voiceRooms.map((room) => (
-              <div key={room.id} className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-sm font-medium text-[var(--app-foreground)]">{room.name}</span>
-                    <span className={`text-xs px-2 py-1 rounded-full ${
-                      room.status === 'active' ? 'bg-green-100 text-green-600' :
-                      'bg-gray-100 text-gray-600'
+              <div key={room.id} className="flex items-center justify-between p-2 bg-white/40 dark:bg-gray-800/40 rounded-md border border-gray-200/30 dark:border-gray-700/30">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center space-x-1 mb-1">
+                    <span className="text-xs font-medium text-[var(--app-foreground)] truncate">{room.name}</span>
+                    <span className={`text-[10px] px-1.5 py-0.5 rounded-full flex-shrink-0 ${
+                      room.status === 'active' ? 'bg-green-100 text-green-600 dark:bg-green-900/20 dark:text-green-400' :
+                      'bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400'
                     }`}>
-                      {room.status === 'active' ? '🟢 Active' : '⚪ Empty'}
+                      {room.status === 'active' ? 'Active' : 'Empty'}
                     </span>
                     {room.isPrivate && (
-                      <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-600">
-                        🔒 Private
+                      <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-purple-100 text-purple-600 dark:bg-purple-900/20 dark:text-purple-400 flex-shrink-0">
+                        Private
                       </span>
                     )}
                   </div>
-                  <div className="text-xs text-[var(--app-foreground-muted)]">
+                  <div className="text-[10px] text-[var(--app-foreground-muted)] truncate">
                     {room.participants} participants • {room.isPrivate ? 'Invite only' : 'Open to all'}
                   </div>
                 </div>
-                <div className="flex space-x-1">
-                  <Button
-                    variant={room.status === 'active' ? 'primary' : 'outline'}
-                    size="sm"
+                <div className="ml-2 flex-shrink-0">
+                  <button
+                    className={`text-[10px] px-2 py-1 rounded-md flex items-center space-x-1 transition-colors ${
+                      room.status === 'active' 
+                        ? 'bg-blue-500 text-white hover:bg-blue-600' 
+                        : 'bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600'
+                    }`}
                     onClick={() => handleJoinVoiceRoom(room.id)}
-                    icon={<Icon name="arrow-right" size="sm" />}
                   >
-                    🎤 Join
-                    <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
-                  </Button>
+                    <span className="text-[10px]">→</span>
+                    <span className="text-[10px]">🎤</span>
+                    <span className="text-[10px]">Join</span>
+                    <span className="ml-1 text-[9px] bg-yellow-200 text-yellow-700 px-1 rounded dark:bg-yellow-900/30 dark:text-yellow-400">Soon</span>
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Voice Quick Actions */}
-        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
-          <div className="flex items-center space-x-2 mb-3">
-            <Icon name="check" className="text-green-500" />
-            <span className="text-sm font-medium text-[var(--app-foreground)]">Voice Features</span>
+        {/* Voice Features */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-3 rounded-lg border border-[var(--app-accent-light)]">
+          <div className="flex items-center space-x-1 mb-3">
+            <span className="text-green-500 text-xs">✅</span>
+            <span className="text-xs font-medium text-[var(--app-foreground)]">Voice Features</span>
           </div>
           
-          <div className="grid grid-cols-2 gap-2">
-            <Button
-              variant="outline"
-              size="sm"
+          <div className="grid grid-cols-2 gap-1.5">
+            <button
+              className="flex items-center justify-center p-2 bg-white/40 dark:bg-gray-800/40 rounded-md border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
               onClick={handleStartVoiceTranslation}
-              icon={<Icon name="plus" size="sm" />}
             >
-              🌍 Live Translation
-              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
-            </Button>
+              <div className="text-center">
+                <div className="text-xs mb-1">🌍 Live</div>
+                <div className="text-xs mb-1">Translation</div>
+                <span className="text-[9px] bg-yellow-200 text-yellow-700 px-1 rounded dark:bg-yellow-900/30 dark:text-yellow-400">Soon</span>
+              </div>
+            </button>
             
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              className="flex items-center justify-center p-2 bg-white/40 dark:bg-gray-800/40 rounded-md border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
               onClick={() => notification({
                 title: "🎭 Voice AI Clone",
                 body: "Creating your AI voice clone..."
               })}
-              icon={<Icon name="plus" size="sm" />}
             >
-              🎭 AI Voice Clone
-              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
-            </Button>
+              <div className="text-center">
+                <div className="text-xs mb-1">🎭 AI</div>
+                <div className="text-xs mb-1">Voice Clone</div>
+                <span className="text-[9px] bg-yellow-200 text-yellow-700 px-1 rounded dark:bg-yellow-900/30 dark:text-yellow-400">Soon</span>
+              </div>
+            </button>
             
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              className="flex items-center justify-center p-2 bg-white/40 dark:bg-gray-800/40 rounded-md border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
               onClick={() => notification({
                 title: "🎵 Voice to Music",
                 body: "Converting voice to melody..."
               })}
-              icon={<Icon name="plus" size="sm" />}
             >
-              🎵 Voice to Music
-              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
-            </Button>
+              <div className="text-center">
+                <div className="text-xs mb-1">🎵 Voice</div>
+                <div className="text-xs mb-1">to Music</div>
+                <span className="text-[9px] bg-yellow-200 text-yellow-700 px-1 rounded dark:bg-yellow-900/30 dark:text-yellow-400">Soon</span>
+              </div>
+            </button>
             
-            <Button
-              variant="outline"
-              size="sm"
+            <button
+              className="flex items-center justify-center p-2 bg-white/40 dark:bg-gray-800/40 rounded-md border border-gray-200/30 dark:border-gray-700/30 hover:bg-white/60 dark:hover:bg-gray-800/60 transition-colors"
               onClick={() => notification({
                 title: "🔊 Voice Enhancement",
                 body: "AI-powered voice quality boost activated"
               })}
-              icon={<Icon name="plus" size="sm" />}
             >
-              🔊 Voice Enhance
-              <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-1 rounded">Beta</span>
-            </Button>
+              <div className="text-center">
+                <div className="text-xs mb-1">🔊 Voice</div>
+                <div className="text-xs mb-1">Enhance</div>
+                <span className="text-[9px] bg-purple-200 text-purple-700 px-1 rounded dark:bg-purple-900/30 dark:text-purple-400">Beta</span>
+              </div>
+            </button>
           </div>
         </div>
 

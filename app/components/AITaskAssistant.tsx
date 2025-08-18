@@ -239,7 +239,7 @@ export function AITaskAssistant() {
   }, [address]);
 
   // Transaction calls for OnchainKit
-  const [transactionCalls, setTransactionCalls] = useState<any[]>([]);
+  const [transactionCalls, setTransactionCalls] = useState<Array<{ to: `0x${string}`; data: `0x${string}` }>>([]);
 
   const getDefaultMessages = (): ChatMessage[] => [
     {
@@ -533,10 +533,10 @@ export function AITaskAssistant() {
   }, [address, notification, checkAIAccess]);
 
   // Transaction success handler for OnchainKit
-  const handleTransactionSuccess = useCallback((response: any) => {
+  const handleTransactionSuccess = useCallback((response: unknown) => {
     console.log('✅ Transaction successful:', response);
     
-    if (response?.transactionHash) {
+    if ((response as { transactionHash?: string })?.transactionHash) {
       console.log('🔍 Starting Basescan verification process...');
       
       notification({
@@ -544,7 +544,7 @@ export function AITaskAssistant() {
         body: "Now verifying with Basescan API..."
       });
       
-      verifyTransactionAndGrantAccess(response.transactionHash);
+      verifyTransactionAndGrantAccess((response as { transactionHash: string }).transactionHash);
     } else {
       console.log('🎉 AI access granted!');
       setHasAIAccess(true);
@@ -560,13 +560,13 @@ export function AITaskAssistant() {
   }, [verifyTransactionAndGrantAccess, notification, checkAIAccess]);
 
   // Transaction error handler for OnchainKit
-  const handleTransactionError = useCallback((error: any) => {
+  const handleTransactionError = useCallback((error: unknown) => {
     console.error('❌ Transaction failed:', error);
     setIsPurchasingAccess(false);
     
     notification({
       title: "❌ Transaction Failed",
-      body: error?.message || "Transaction failed"
+      body: (error as { message?: string })?.message || "Transaction failed"
     });
     
     console.log('💡 User can try again or check wallet connection');

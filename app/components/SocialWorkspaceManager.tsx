@@ -1,10 +1,21 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import Image from 'next/image';
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
+import { useAccount } from "wagmi";
+import { 
+  Transaction, 
+  TransactionButton, 
+  TransactionStatus,
+  TransactionStatusAction,
+  TransactionStatusLabel 
+} from "@coinbase/onchainkit/transaction";
+import { METAWORKSPACE_NFT_ABI } from "../constants/contractABI";
+import { getCurrentChainConfig } from "../config/chains";
+import { encodeFunctionData } from "viem";
 
 function Card({ 
   title, 
@@ -31,20 +42,83 @@ function Card({
 
 export function SocialWorkspaceManager() {
   const {
-    socialGraph,
     userProfile,
     generateQR,
     shareURL,
-    signMessage,
     notification,
-    composeCast,
-    isAvailable
+    composeCast
   } = useMiniKitFeatures();
   
-  const [teamMembers] = useState(12);
+  const { address } = useAccount();
+  const [contractStats, setContractStats] = useState({
+    totalSupply: 0,
+    totalUsers: 0,
+    totalContent: 0
+  });
   const [isGeneratingQR, setIsGeneratingQR] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string | null>(null);
   const [signedMessage, setSignedMessage] = useState("");
+  const [workProofCalls, setWorkProofCalls] = useState<Array<{ to: `0x${string}`; data: `0x${string}` }>>([]);
+
+  // Load real contract statistics
+  useEffect(() => {
+    const loadContractStats = async () => {
+      try {
+        const response = await fetch('/api/blockchain/statistics');
+        if (response.ok) {
+          const stats = await response.json();
+                   setContractStats({
+           totalSupply: stats.totalSupply || 0,
+           totalUsers: stats.uniqueCreators || stats.totalUsers || 0, // Use uniqueCreators as active users
+           totalContent: stats.totalContent || 0
+         });
+        }
+      } catch (error) {
+        console.error('Failed to load contract stats:', error);
+      }
+    };
+
+    loadContractStats();
+  }, []);
+
+  // Prepare work proof transaction (using voice NFT as proof of work)
+  const prepareWorkProof = useCallback(async () => {
+    if (!address) return [];
+    
+    try {
+      const chainConfig = getCurrentChainConfig();
+      
+      // Create a proof-of-work NFT with current timestamp
+      const currentDate = new Date();
+      const proofData = {
+        type: 'work-proof',
+        timestamp: currentDate.toISOString(),
+        worker: address,
+        sessionHash: `proof_${Date.now()}`
+      };
+      
+      const contractCall = {
+        to: chainConfig.contractAddress as `0x${string}`,
+        data: encodeFunctionData({
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'mintVoiceNFT',
+          args: [
+            address,
+            `work_proof_${Date.now()}`, // Using timestamp as IPFS hash
+            BigInt(3600), // 1 hour of work
+            'work-verification',
+            [], // No whitelist - public proof
+            JSON.stringify(proofData) // Work proof metadata
+          ]
+        })
+      };
+      
+      return [contractCall];
+    } catch (error) {
+      console.error('Error preparing work proof:', error);
+      return [];
+    }
+  }, [address]);
 
   const handleGenerateTeamQR = useCallback(async () => {
     setIsGeneratingQR(true);
@@ -69,21 +143,62 @@ export function SocialWorkspaceManager() {
   }, [generateQR, userProfile, notification]);
 
   const handleSignWorkProof = useCallback(async () => {
-    try {
-      // Create verification message
-      const verificationMessage = `MetaWorkspace AI - Work Verification\nUser: ${(userProfile as { username?: string })?.username || 'Anonymous'}\nTimestamp: ${new Date().toISOString()}\nTasks: 12 completed\nHours: 8.5h`;
-      console.log('Signing message:', verificationMessage);
-      const signature = await signMessage();
-      setSignedMessage(signature);
-      
+    if (!address) {
       await notification({
-        title: "🔐 Work Proof Signed!",
-        body: "Your professional credentials have been cryptographically verified"
+        title: "❌ Wallet Required",
+        body: "Please connect your wallet to sign work proof"
       });
-    } catch (error) {
-      console.error("Message signing failed:", error);
+      return;
     }
-  }, [signMessage, userProfile, notification]);
+
+    try {
+      await notification({
+        title: "🔗 Preparing Work Proof",
+        body: "Creating blockchain proof of work..."
+      });
+
+      const calls = await prepareWorkProof();
+      if (calls.length > 0) {
+        setWorkProofCalls(calls);
+        
+        await notification({
+          title: "🚀 Work Proof Ready",
+          body: "Click to mint your work verification NFT"
+        });
+      } else {
+        throw new Error("Failed to prepare work proof transaction");
+      }
+    } catch (error) {
+      console.error("Work proof preparation failed:", error);
+      await notification({
+        title: "❌ Preparation Failed",
+        body: "Could not prepare work proof transaction"
+      });
+    }
+  }, [address, prepareWorkProof, notification]);
+
+  // Transaction handlers for work proof
+  const handleWorkProofSuccess = useCallback(async (response: unknown) => {
+    console.log('✅ Work proof transaction successful:', response);
+    
+    setSignedMessage("work_proof_verified");
+    setWorkProofCalls([]);
+    
+    await notification({
+      title: "🎉 Work Proof Verified!",
+      body: "Your work has been recorded on the blockchain permanently"
+    });
+  }, [notification]);
+
+  const handleWorkProofError = useCallback((error: unknown) => {
+    console.error('❌ Work proof transaction failed:', error);
+    setWorkProofCalls([]);
+    
+    notification({
+      title: "❌ Work Proof Failed",
+      body: (error as { message?: string })?.message || "Transaction failed"
+    });
+  }, [notification]);
 
   const handleShareOnFarcaster = useCallback(async () => {
     try {
@@ -175,15 +290,13 @@ Join ${userName} and build the future of work! 🤖⛓️`,
       <div className="space-y-5">
         <div className="grid grid-cols-2 gap-3">
           <div className="neu-card p-4 gradient-accent text-white text-center">
-            <div className="text-xl font-bold">{(socialGraph as { following?: { length?: number } })?.following?.length || 47}</div>
-            <div className="text-xs opacity-90 mt-1">Team Network</div>
-            <div className="text-xs opacity-75 mt-1">
-              {isAvailable.socialGraph ? "Live" : "Demo"}
-            </div>
+            <div className="text-xl font-bold">{contractStats.totalSupply}</div>
+            <div className="text-xs opacity-90 mt-1">Total NFTs</div>
+            <div className="text-xs opacity-75 mt-1">On-chain</div>
           </div>
           <div className="neu-card p-4 gradient-coral text-white text-center">
-            <div className="text-xl font-bold">{teamMembers}</div>
-            <div className="text-xs opacity-90 mt-1">Active Members</div>
+            <div className="text-xl font-bold">{contractStats.totalUsers}</div>
+            <div className="text-xs opacity-90 mt-1">Active Users</div>
             <div className="text-xs opacity-75 mt-1">Real-time</div>
           </div>
         </div>
@@ -207,14 +320,14 @@ Join ${userName} and build the future of work! 🤖⛓️`,
               {isGeneratingQR ? "Generating..." : "QR Invite"}
             </Button>
             
-            <Button
-              variant="outline" 
-              size="sm"
-              onClick={handleShareWorkspace}
-              icon={<Icon name="arrow-right" size="sm" />}
-            >
-              Share Workspace
-            </Button>
+                         <Button
+               variant="outline" 
+               size="sm"
+               onClick={handleShareWorkspace}
+               icon={<Icon name="arrow-right" size="sm" />}
+             >
+               Share WorkBase
+             </Button>
           </div>
         </div>
 
@@ -279,18 +392,35 @@ Join ${userName} and build the future of work! 🤖⛓️`,
             <span className="text-sm font-medium text-[var(--app-foreground)]">Cryptographic Verification</span>
           </div>
           <div className="space-y-2">
-            <Button
-              variant="primary"
-              size="sm"
-              onClick={handleSignWorkProof}
-              className="w-full"
-              icon={<Icon name="check" size="sm" />}
-            >
-              🔐 Sign Work Proof
-            </Button>
+            {workProofCalls.length > 0 ? (
+              <Transaction
+                calls={workProofCalls}
+                onSuccess={handleWorkProofSuccess}
+                onError={handleWorkProofError}
+              >
+                <TransactionButton 
+                  text="🔐 Mint Work Proof NFT"
+                  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700"
+                />
+                <TransactionStatus>
+                  <TransactionStatusAction />
+                  <TransactionStatusLabel />
+                </TransactionStatus>
+              </Transaction>
+            ) : (
+              <Button
+                variant="primary"
+                size="sm"
+                onClick={handleSignWorkProof}
+                className="w-full"
+                icon={<Icon name="check" size="sm" />}
+              >
+                🔐 Sign Work Proof
+              </Button>
+            )}
             {signedMessage && (
               <div className="text-xs bg-[var(--app-accent-light)] p-2 rounded text-center">
-                ✅ Message cryptographically signed
+                ✅ Work proof verified on blockchain
               </div>
             )}
           </div>
@@ -313,9 +443,7 @@ Join ${userName} and build the future of work! 🤖⛓️`,
           );
         })()}
 
-        <div className="text-xs text-center text-[var(--app-foreground-muted)] bg-[var(--app-accent-light)] p-2 rounded">
-          🔧 Feature Status: Notifications ✅ | QR {isAvailable.qrGeneration ? "✅" : "🔧"} | Social {isAvailable.socialGraph ? "✅" : "🔧"} | Signing {isAvailable.messageSign ? "✅" : "🔧"}
-        </div>
+
       </div>
     </Card>
   );

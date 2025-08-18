@@ -65,6 +65,12 @@ export class BlockchainService {
   private contractAddress: Address = this.chainConfig.contractAddress;
   private chain = this.chainConfig.chain;
   
+  // Caching for rate limit protection
+  private nftCache = new Map<string, { data: VoiceNFT[]; timestamp: number }>();
+  private readonly CACHE_TTL = 30000; // 30 seconds cache
+  private readonly RATE_LIMIT_DELAY = 1000; // 1 second between requests
+  private lastRequestTime = 0;
+  
   constructor() {
     console.log(`🔗 BlockchainService initialized with ${this.chainConfig.name}`);
     console.log(`📜 Contract address: ${this.contractAddress}`);
@@ -212,10 +218,52 @@ export class BlockchainService {
   }
 
   /**
-   * Get Voice NFTs by room
+   * Rate limiting helper
+   */
+  private async throttle(): Promise<void> {
+    const now = Date.now();
+    const timeSinceLastRequest = now - this.lastRequestTime;
+    
+    if (timeSinceLastRequest < this.RATE_LIMIT_DELAY) {
+      const delay = this.RATE_LIMIT_DELAY - timeSinceLastRequest;
+      console.log(`⏳ Rate limiting: waiting ${delay}ms...`);
+      await new Promise(resolve => setTimeout(resolve, delay));
+    }
+    
+    this.lastRequestTime = Date.now();
+  }
+
+  /**
+   * Clean expired cache entries
+   */
+  private cleanCache(): void {
+    const now = Date.now();
+    for (const [key, value] of this.nftCache.entries()) {
+      if (now - value.timestamp > this.CACHE_TTL) {
+        this.nftCache.delete(key);
+      }
+    }
+  }
+
+  /**
+   * Get Voice NFTs by room with caching and rate limiting
    */
   async getVoiceNFTsByRoom(roomId: string): Promise<VoiceNFT[]> {
+    this.cleanCache();
+    
+    // Check cache first
+    const cached = this.nftCache.get(roomId);
+    if (cached && (Date.now() - cached.timestamp < this.CACHE_TTL)) {
+      console.log(`💾 Cache hit for room ${roomId}: ${cached.data.length} NFTs`);
+      return cached.data;
+    }
+
     try {
+      // Rate limiting
+      await this.throttle();
+      
+      console.log(`🔗 Fetching NFTs for room ${roomId} from blockchain...`);
+      
       const tokenIds = await this.publicClient.readContract({
         address: this.contractAddress,
         abi: METAWORKSPACE_NFT_ABI,
@@ -223,35 +271,69 @@ export class BlockchainService {
         args: [roomId]
       }) as readonly bigint[];
 
+      console.log(`📋 Found ${tokenIds.length} tokens in room ${roomId}`);
+
       const nfts: VoiceNFT[] = [];
       
-      for (const tokenId of tokenIds) {
-        const data = await this.publicClient.readContract({
-          address: this.contractAddress,
-          abi: METAWORKSPACE_NFT_ABI,
-          functionName: 'getContent', // getVoiceNFT was removed, use getContent
-          args: [tokenId]
-        });
-
-        // getContent returns NFTContent struct, filter for voice content only
-        if (data && typeof data === 'object' && 'contentType' in data && data.contentType === 0) { // VOICE = 0
-          nfts.push({
-            tokenId: tokenId.toString(),
-            ipfsHash: data.ipfsHash as string,
-            duration: Number(data.duration),
-            roomId: data.roomId as string,
-            creator: data.creator as `0x${string}`,
-            timestamp: Number(data.timestamp),
-            isPrivate: data.isPrivate as boolean,
-            whitelistedUsers: [...(data.whitelistedUsers as readonly string[])],
-            transcription: data.metadata as string // metadata contains transcription for voice
+      // Add small delay between requests to avoid rate limiting
+      for (let i = 0; i < tokenIds.length; i++) {
+        const tokenId = tokenIds[i];
+        
+        if (i > 0) {
+          await new Promise(resolve => setTimeout(resolve, 200)); // 200ms delay between token requests
+        }
+        
+        try {
+          const data = await this.publicClient.readContract({
+            address: this.contractAddress,
+            abi: METAWORKSPACE_NFT_ABI,
+            functionName: 'getContent', // getVoiceNFT was removed, use getContent
+            args: [tokenId]
           });
+
+          // getContent returns NFTContent struct, filter for voice content only
+          if (data && typeof data === 'object' && 'contentType' in data && data.contentType === 0) { // VOICE = 0
+            nfts.push({
+              tokenId: tokenId.toString(),
+              ipfsHash: data.ipfsHash as string,
+              duration: Number(data.duration),
+              roomId: data.roomId as string,
+              creator: data.creator as `0x${string}`,
+              timestamp: Number(data.timestamp),
+              isPrivate: data.isPrivate as boolean,
+              whitelistedUsers: [...(data.whitelistedUsers as readonly string[])],
+              transcription: data.metadata as string // metadata contains transcription for voice
+            });
+          }
+        } catch (tokenError) {
+          console.warn(`⚠️ Failed to fetch token ${tokenId}:`, tokenError);
+          // Continue with other tokens
         }
       }
 
+      // Cache the result
+      this.nftCache.set(roomId, {
+        data: nfts,
+        timestamp: Date.now()
+      });
+
+      console.log(`✅ Successfully fetched and cached ${nfts.length} voice NFTs for room ${roomId}`);
       return nfts;
+      
     } catch (error) {
       console.error('Error fetching voice NFTs:', error);
+      
+      // Return cached data if available, even if expired
+      if (cached) {
+        console.log(`🔄 Returning expired cache for room ${roomId} due to error`);
+        return cached.data;
+      }
+      
+      // If it's a rate limit error, throw it to be handled by the UI
+      if (error instanceof Error && error.message.includes('rate limit')) {
+        throw new Error('Rate limited by RPC provider. Please wait and try again.');
+      }
+      
       return [];
     }
   }

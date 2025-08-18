@@ -34,12 +34,22 @@ export class IPFSStorageService {
   private apiUrl = 'https://api.pinata.cloud';
 
   constructor() {
-    this.apiKey = process.env.PINATA_API_KEY || '';
-    this.secretKey = process.env.PINATA_SECRET_KEY || '';
+    this.apiKey = process.env.PINATA_API_KEY || process.env.NEXT_PUBLIC_PINATA_API_KEY || '';
+    this.secretKey = process.env.PINATA_SECRET_KEY || process.env.NEXT_PUBLIC_PINATA_API_SECRET || '';
     this.gatewayUrl = process.env.IPFS_GATEWAY_URL || 'https://gateway.pinata.cloud/ipfs/';
 
     if (!this.apiKey || !this.secretKey) {
       console.warn('IPFS: Pinata credentials not configured, falling back to mock mode');
+      console.log('Available env vars:', {
+        PINATA_API_KEY: !!process.env.PINATA_API_KEY,
+        NEXT_PUBLIC_PINATA_API_KEY: !!process.env.NEXT_PUBLIC_PINATA_API_KEY,
+        PINATA_SECRET_KEY: !!process.env.PINATA_SECRET_KEY,
+        NEXT_PUBLIC_PINATA_API_SECRET: !!process.env.NEXT_PUBLIC_PINATA_API_SECRET
+      });
+    } else {
+      console.log('✅ IPFS: Pinata credentials configured successfully');
+      console.log('🔑 API Key:', this.apiKey.slice(0, 8) + '...');
+      console.log('🔐 Secret Key:', this.secretKey.slice(0, 8) + '...');
     }
   }
 
@@ -73,9 +83,17 @@ export class IPFSStorageService {
           type: metadata.type,
           roomId: metadata.roomId || '',
           creator: metadata.creator || '',
-          duration: metadata.duration?.toString() || ''
+          duration: metadata.duration?.toString() || '',
+          transcription: metadata.transcription || '',
+          description: metadata.description || ''
         }
       };
+
+      console.log('📤 Uploading to Pinata with metadata:', {
+        fileName: file instanceof File ? file.name : `${metadata.type}-${Date.now()}.${this.getFileExtension(metadata.type)}`,
+        fileSize: file.size,
+        metadata: pinataMetadata
+      });
 
       formData.append('pinataMetadata', JSON.stringify(pinataMetadata));
 

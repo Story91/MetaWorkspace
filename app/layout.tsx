@@ -12,12 +12,12 @@ export const viewport: Viewport = {
 export async function generateMetadata(): Promise<Metadata> {
   const URL = process.env.NEXT_PUBLIC_URL;
   return {
-    title: "MetaWorkspace AI - Intelligent Decentralized Workspace",
+    title: "MetaWorkBase AI - Intelligent Decentralized Workspace",
     description:
       "Revolutionary AI-powered workspace for decentralized teams. Blockchain-verified productivity, cross-DAO collaboration, and intelligent task management.",
     openGraph: {
-      title: "MetaWorkspace AI - The Future of Work",
-      description: "AI-powered workspace with blockchain verification. Join 10,000+ professionals building their career on-chain.",
+      title: "MetaWorkBase AI - The Future of Work",
+      description: "AI-powered workspace with blockchain verification.",
       images: [process.env.NEXT_PUBLIC_APP_HERO_IMAGE || ""],
     },
     other: {

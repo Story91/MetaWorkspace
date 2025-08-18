@@ -169,40 +169,40 @@ export function AboutGuide() {
           <div>
             <GuideSection
               icon="🎤"
-              title="Nagrywanie głosu jako NFT"
+              title="Record Voice as an NFT"
               steps={[
-                "Przejdź do zakładki '🎤 Voice'",
-                "Kliknij przycisk 'Start Recording' aby rozpocząć nagrywanie",
-                "Mów wyraźnie - maksymalnie 30 sekund na nagranie",
-                "Kliknij 'Stop & Create NFT' aby zakończyć",
-                "AI automatycznie przetworzy audio i utworzy NFT na blockchain",
-                "Twoje NFT pojawi się w liście poniżej z transkrypcją"
+                "Go to the '🎤 Voice' tab",
+                "Click 'Start Recording' to begin",
+                "Speak clearly — up to 30 seconds per recording",
+                "Click 'Stop & Create NFT' to finish",
+                "AI will process the audio and mint an NFT on-chain",
+                "Your NFT appears in the list below with a transcript"
               ]}
               tips={[
-                "Każde nagranie staje się unikalnym NFT z Twoim głosem",
-                "AI automatycznie transkrybuje Twój głos na tekst",
-                "NFT są przechowywane na IPFS dla decentralizacji",
-                "Możesz udostępniać nagrania wybranym osobom",
-                "Nagrania są dostępne w pokojach Farcaster"
+                "Each recording becomes a unique NFT with your voice",
+                "AI automatically transcribes your voice to text",
+                "NFT metadata is stored on IPFS for decentralization",
+                "You can share recordings with selected people",
+                "Recordings are accessible inside Farcaster rooms"
               ]}
             />
             
             <GuideSection
               icon="📹"
-              title="Inteligentne spotkania wideo"
+              title="Smart Video Meetings"
               steps={[
-                "Przejdź do zakładki '📹 Meetings'",
-                "Kliknij 'Start Meeting' aby utworzyć nowe spotkanie",
-                "Udostępnij link uczestnikom",
-                "Użyj 'Smart Recording' dla automatycznej transkrypcji",
-                "AI wyciągnie automatycznie zadania i podsumowanie",
-                "Spotkanie zostanie zapisane jako NFT na blockchain"
+                "Go to the '📹 Meetings' tab",
+                "Click 'Start Meeting' to create a session",
+                "Share the link with participants",
+                "Use 'Smart Recording' for automatic transcription",
+                "AI extracts action items and a summary automatically",
+                "The meeting is saved on-chain as a video NFT"
               ]}
               tips={[
-                "AI automatycznie identyfikuje zadania podczas spotkania",
-                "Transkrypcja jest dostępna w czasie rzeczywistym",
-                "Można udostępniać ekran i prezentacje",
-                "Historia spotkań jest przechowywana bezpiecznie"
+                "AI detects action items during the meeting",
+                "Live transcription is available",
+                "You can share screen and presentations",
+                "Meeting history is stored securely"
               ]}
             />
           </div>
@@ -213,36 +213,36 @@ export function AboutGuide() {
           <div>
             <GuideSection
               icon="⛓️"
-              title="Blockchain Work Logger - weryfikacja pracy"
+              title="Blockchain Work Logger - Work Verification"
               steps={[
-                "W sekcji Dashboard znajdź 'Blockchain Workspace Logs'",
-                "Wszystkie Twoje zadania są automatycznie zapisywane na Base L2",
-                "Kliknij 'Verify Work Achievement' aby potwierdzić ukończenie",
-                "Transakcja zostanie zapisana na blockchain jako dowód pracy",
-                "Otrzymasz powiadomienie o sukcesie operacji"
+                "In the Dashboard, open 'Blockchain Workspace Logs'",
+                "Your tasks are automatically recorded on Base L2",
+                "Click 'Verify Work Achievement' to confirm completion",
+                "The transaction is stored on-chain as proof of work",
+                "You'll get a success notification"
               ]}
               tips={[
-                "Twoja historia pracy jest niepodważalna dzięki blockchain",
-                "Możesz udowodnić swoje osiągnięcia w każdej firmie",
-                "Wszystkie dane należą do Ciebie, nie do firmy",
-                "System śledzi godziny, zadania i osiągnięcia automatycznie"
+                "Your work history is tamper-proof thanks to blockchain",
+                "You can prove achievements across companies",
+                "Your data belongs to you, not the platform",
+                "The system tracks time, tasks, and achievements automatically"
               ]}
             />
             
             <GuideSection
               icon="🏆"
-              title="NFT osiągnięć i tokeny"
+              title="Achievement NFTs and Tokens"
               steps={[
-                "Każde ukończone zadanie generuje potencjalny token osiągnięcia",
-                "Duże projekty mogą zostać zmintowane jako NFT portfolio",
-                "Twoje osiągnięcia stają się częścią Twojej reputacji Web3",
-                "Możesz handlować lub prezentować swoje profesjonalne NFT"
+                "Each completed task can mint an achievement token",
+                "Large projects can be minted as portfolio NFTs",
+                "Achievements become part of your Web3 reputation",
+                "You can trade or showcase your professional NFTs"
               ]}
               tips={[
-                "NFT osiągnięć to Twoje profesjonalne CV na blockchain",
-                "Soulbound tokeny nie mogą być sprzedane - to Twoja tożsamość",
-                "Kolekcje NFT pokazują Twoją karierę i umiejętności",
-                "Inne firmy mogą weryfikować Twoje osiągnięcia on-chain"
+                "Achievement NFTs are your on-chain professional CV",
+                "Soulbound tokens are non-transferable identity",
+                "NFT collections showcase your career and skills",
+                "Others can verify your achievements on-chain"
               ]}
             />
           </div>
@@ -253,36 +253,36 @@ export function AboutGuide() {
           <div>
             <GuideSection
               icon="🌐"
-              title="Social Workspace Manager - networking"
+              title="Social Workspace Manager - Networking"
               steps={[
-                "Przejdź do zakładki '🌐 Social'",
-                "Zobacz swoje statystyki sieci (followers, following)",
-                "Kliknij 'Generate Team QR' aby utworzyć kod zaproszenia",
-                "Udostępnij kod QR aby zaprosić ludzi do zespołu",
-                "Użyj 'Share Workspace' aby promować swój projekt"
+                "Go to the '🌐 Social' tab",
+                "View your social stats (followers, following)",
+                "Click 'Generate Team QR' to create an invite code",
+                "Share the QR to invite people to your team",
+                "Use 'Share Workspace' to promote your project"
               ]}
               tips={[
-                "QR kody są najszybszym sposobem zapraszania do zespołu",
-                "Social graph pokazuje Twoje połączenia w ekosystemie Web3",
-                "Możesz budować reputację przez współpracę między DAO",
-                "System śledzi Twoje profesjonalne osiągnięcia społeczne"
+                "QR codes are the fastest way to invite teammates",
+                "The social graph shows your Web3 connections",
+                "Build reputation through cross-DAO collaboration",
+                "The system tracks your social professional milestones"
               ]}
             />
             
             <GuideSection
               icon="🔐"
-              title="Kryptograficzna weryfikacja pracy"
+              title="Cryptographic Work Verification"
               steps={[
-                "W sekcji Social kliknij 'Sign Work Proof'",
-                "System utworzy kryptograficzny dowód Twojej pracy",
-                "Podpis zawiera godziny, zadania i znacznik czasu",
-                "Możesz użyć tego jako dowodu dla klientów lub pracodawców"
+                "In Social, click 'Sign Work Proof'",
+                "The system creates a cryptographic proof of your work",
+                "The signature includes time, tasks, and a timestamp",
+                "Use it as proof for clients or employers"
               ]}
               tips={[
-                "Podpisy kryptograficzne są niesfałszowalne",
-                "To najwyższy standard bezpieczeństwa w branży",
-                "Możesz weryfikować pracę bez ujawniania szczegółów",
-                "System jest zgodny z najlepszymi praktykami Web3"
+                "Cryptographic signatures are unfalsifiable",
+                "This is the industry’s highest security standard",
+                "You can verify work without revealing details",
+                "Compliant with Web3 best practices"
               ]}
             />
           </div>

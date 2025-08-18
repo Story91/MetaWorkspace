@@ -835,11 +835,14 @@ export function SmartMeetingRecorder() {
     try {
       const shareText = `🎥 Just minted my ${formatDuration(nft.duration)}s video as an NFT! Check out my creation on MetaWorkspace 🚀`;
       
+      // Use Pinata gateway for video sharing (replace QmfWT3r1dNmeQ55UTZYH8wJs7ihf1kdL56PT748nqFddhj with actual IPFS hash)
+      const pinataVideoUrl = `https://copper-capable-manatee-313.mypinata.cloud/ipfs/${nft.ipfsHash}`;
+      
       composeCast({
         text: shareText,
         embeds: [
-          window.location.href, // App URL for discovery
-          `https://basescan.org/nft/0x3e9747E50635bC453071504cf959CFbdD3F736e4/${nft.tokenId}` // NFT link
+          pinataVideoUrl, // Video preview from Pinata (most important for engagement)
+          window.location.href // App URL for discovery
         ]
       });
 

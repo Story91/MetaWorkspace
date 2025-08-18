@@ -4,9 +4,17 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
-import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { 
+  Transaction, 
+  TransactionButton, 
+  TransactionStatus,
+  TransactionStatusAction,
+  TransactionStatusLabel 
+} from "@coinbase/onchainkit/transaction";
+import { useAccount } from "wagmi";
 import { METAWORKSPACE_NFT_ABI } from "../constants/contractABI";
 import { getCurrentChainConfig } from "../config/chains";
+import { encodeFunctionData } from "viem";
 
 interface ChatMessage {
   id: string;
@@ -182,17 +190,56 @@ function MessageContent({ content }: { content: string; isUser: boolean }) {
 export function AITaskAssistant() {
   const { notification, userProfile, fetchUserProfile, context } = useMiniKitFeatures();
   const { address } = useAccount();
-  const { writeContract, data: hash, error: writeError } = useWriteContract();
-  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
-    hash,
-  });
   const [isClientMounted, setIsClientMounted] = useState(false);
   
   // AI Access Control
   const [hasAIAccess, setHasAIAccess] = useState<boolean | null>(null);
   const [isCheckingAccess, setIsCheckingAccess] = useState(false); // Start as false
   const [isPurchasingAccess, setIsPurchasingAccess] = useState(false);
-  // const [aiAccessPrice] = useState<string>("0.0001"); // Unused
+  const [aiAccessPrice, setAiAccessPrice] = useState<string>("0");
+
+  // Prepare transaction calls for OnchainKit
+  const prepareAIAccessPurchase = useCallback(async () => {
+    if (!address) return [];
+    
+    try {
+      const chainConfig = getCurrentChainConfig();
+      
+      // Get the current AI access price from contract
+      const response = await fetch('/api/blockchain/work-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'purchaseAIAccess',
+          userAddress: address
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setAiAccessPrice(data.value);
+        
+        const contractCall = {
+          to: chainConfig.contractAddress as `0x${string}`,
+          data: encodeFunctionData({
+            abi: METAWORKSPACE_NFT_ABI,
+            functionName: 'purchaseAIAccess',
+            args: []
+          }),
+          value: BigInt(data.value)
+        };
+        
+        return [contractCall];
+      }
+    } catch (error) {
+      console.error('Error preparing AI access purchase:', error);
+    }
+    
+    return [];
+  }, [address]);
+
+  // Transaction calls for OnchainKit
+  const [transactionCalls, setTransactionCalls] = useState<any[]>([]);
 
   const getDefaultMessages = (): ChatMessage[] => [
     {
@@ -330,70 +377,40 @@ export function AITaskAssistant() {
     }
   }, [address]);
 
-  // Purchase AI Access using blockchain transaction
-  const purchaseAIAccess = useCallback(async () => {
+  // Prepare transaction for OnchainKit
+  const handlePrepareTransaction = useCallback(async () => {
     if (!address || isPurchasingAccess) return;
 
-    console.log(`💳 Starting AI access purchase for ${address.slice(0, 6)}...${address.slice(-4)}`);
+    console.log(`💳 Preparing AI access purchase for ${address.slice(0, 6)}...${address.slice(-4)}`);
     setIsPurchasingAccess(true);
     
     try {
-      const chainConfig = getCurrentChainConfig();
-      console.log(`🔗 Using ${chainConfig.name} contract: ${chainConfig.contractAddress}`);
-      
       notification({
         title: "💳 Preparing Transaction",
         body: "Getting AI access price from contract..."
       });
       
-      // Get the current AI access price from contract
-      const response = await fetch('/api/blockchain/work-logs', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          action: 'purchaseAIAccess',
-          userAddress: address
-        })
-      });
-
-      if (response.ok) {
-        const data = await response.json();
-        const priceETH = (BigInt(data.value) / BigInt(10**18)).toString();
-        
-        console.log(`💰 AI Access price: ${data.value} wei (${priceETH} ETH)`);
+      const calls = await prepareAIAccessPurchase();
+      if (calls.length > 0) {
+        setTransactionCalls(calls);
+        const priceETH = (BigInt(aiAccessPrice) / BigInt(10**18)).toString();
         
         notification({
-          title: "🚀 Sending Transaction",
-          body: `Purchasing AI access for ${priceETH} ETH...`
+          title: "🚀 Transaction Ready",
+          body: `Ready to purchase AI access for ${priceETH} ETH`
         });
-        
-        // Execute transaction using wagmi
-        writeContract({
-          address: chainConfig.contractAddress as `0x${string}`,
-          abi: METAWORKSPACE_NFT_ABI,
-          functionName: 'purchaseAIAccess',
-          args: [],
-          value: BigInt(data.value)
-        });
-        
-        console.log('📤 Transaction sent to wallet for signing');
       } else {
-        console.error(`❌ Failed to get AI access price: ${response.status}`);
-        notification({
-          title: "❌ Transaction Failed",
-          body: "Failed to prepare transaction"
-        });
-        setIsPurchasingAccess(false);
+        throw new Error("Failed to prepare transaction");
       }
     } catch (error) {
-      console.error('❌ Error purchasing AI access:', error);
+      console.error('❌ Error preparing AI access purchase:', error);
       notification({
-        title: "❌ Purchase Failed",
+        title: "❌ Preparation Failed",
         body: error instanceof Error ? error.message : "Unknown error"
       });
       setIsPurchasingAccess(false);
     }
-  }, [address, writeContract, notification, isPurchasingAccess]);
+  }, [address, prepareAIAccessPurchase, aiAccessPrice, notification, isPurchasingAccess]);
 
   // Fetch user profile on component mount
   useEffect(() => {
@@ -515,10 +532,11 @@ export function AITaskAssistant() {
     }
   }, [address, notification, checkAIAccess]);
 
-  // Handle transaction confirmation - now verify with Basescan
-  useEffect(() => {
-    if (isConfirmed && hash) {
-      console.log(`✅ Transaction confirmed on blockchain: ${hash}`);
+  // Transaction success handler for OnchainKit
+  const handleTransactionSuccess = useCallback((response: any) => {
+    console.log('✅ Transaction successful:', response);
+    
+    if (response?.transactionHash) {
       console.log('🔍 Starting Basescan verification process...');
       
       notification({
@@ -526,25 +544,33 @@ export function AITaskAssistant() {
         body: "Now verifying with Basescan API..."
       });
       
-      // Don't immediately grant access - verify transaction first
-      verifyTransactionAndGrantAccess(hash);
-    }
-      }, [isConfirmed, hash, verifyTransactionAndGrantAccess, notification]);
-
-  // Handle transaction errors
-  useEffect(() => {
-    if (writeError) {
-      console.error('❌ Transaction failed:', writeError);
+      verifyTransactionAndGrantAccess(response.transactionHash);
+    } else {
+      console.log('🎉 AI access granted!');
+      setHasAIAccess(true);
       setIsPurchasingAccess(false);
       
       notification({
-        title: "❌ Transaction Failed",
-        body: `Error: ${writeError.message}`
+        title: "🎉 AI Access Activated!",
+        body: "You now have lifetime AI access!"
       });
       
-      console.log('💡 User can try again or check wallet connection');
+      checkAIAccess(); // Refresh state
     }
-  }, [writeError, notification]);
+  }, [verifyTransactionAndGrantAccess, notification, checkAIAccess]);
+
+  // Transaction error handler for OnchainKit
+  const handleTransactionError = useCallback((error: any) => {
+    console.error('❌ Transaction failed:', error);
+    setIsPurchasingAccess(false);
+    
+    notification({
+      title: "❌ Transaction Failed",
+      body: error?.message || "Transaction failed"
+    });
+    
+    console.log('💡 User can try again or check wallet connection');
+  }, [notification]);
 
   const callRealAI = useCallback(async (userMessage: string): Promise<string> => {
     try {
@@ -656,8 +682,8 @@ export function AITaskAssistant() {
   }, [handleSendMessage]);
 
   const handlePurchaseAIAccess = useCallback(async () => {
-    await purchaseAIAccess();
-  }, [purchaseAIAccess]);
+    await handlePrepareTransaction();
+  }, [handlePrepareTransaction]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -713,19 +739,36 @@ export function AITaskAssistant() {
             </div>
           </div>
 
-          <Button
-            variant="primary"
-            size="lg"
-            onClick={handlePurchaseAIAccess}
-            disabled={isPurchasingAccess || isConfirming}
-            icon={(isPurchasingAccess || isConfirming) ? 
-              <div className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin"></div> :
-              <span>💳</span>
-            }
-            className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
-          >
-            {isConfirming ? 'Verifying Transaction...' : isPurchasingAccess ? 'Processing Payment...' : 'Buy AI Access'}
-          </Button>
+          {transactionCalls.length > 0 ? (
+            <Transaction
+              calls={transactionCalls}
+              onSuccess={handleTransactionSuccess}
+              onError={handleTransactionError}
+            >
+              <TransactionButton 
+                text="💳 Buy AI Access"
+                className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
+              />
+              <TransactionStatus>
+                <TransactionStatusAction />
+                <TransactionStatusLabel />
+              </TransactionStatus>
+            </Transaction>
+          ) : (
+            <Button
+              variant="primary"
+              size="lg"
+              onClick={handlePurchaseAIAccess}
+              disabled={isPurchasingAccess}
+              icon={isPurchasingAccess ? 
+                <div className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin"></div> :
+                <span>💳</span>
+              }
+              className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
+            >
+              {isPurchasingAccess ? 'Preparing Transaction...' : 'Prepare AI Access Purchase'}
+            </Button>
+          )}
 
           <div className="text-xs text-[var(--app-foreground-muted)] mt-4">
             💡 One-time payment • Lifetime access to AI assistant

@@ -6,6 +6,17 @@ import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
 import { blockchainService, type VoiceNFT } from "../services/blockchainService";
 import { IPFSStorageService } from "../services/ipfsStorage";
+import { 
+  Transaction, 
+  TransactionButton, 
+  TransactionStatus,
+  TransactionStatusAction,
+  TransactionStatusLabel 
+} from "@coinbase/onchainkit/transaction";
+import { useAccount } from "wagmi";
+import { METAWORKSPACE_NFT_ABI } from "../constants/contractABI";
+import { getCurrentChainConfig } from "../config/chains";
+import { encodeFunctionData } from "viem";
 
 // RecordRTC types
 interface RecordRTCInstance {
@@ -48,6 +59,7 @@ function Card({
 
 export function VoiceVideoHub() {
   const { notification } = useMiniKitFeatures();
+  const { address } = useAccount();
   
   // Voice Recording State
   const [isRecordingVoice, setIsRecordingVoice] = useState(false);
@@ -69,6 +81,91 @@ export function VoiceVideoHub() {
   const [recordedBlob, setRecordedBlob] = useState<Blob | null>(null);
   const [playingNFTId, setPlayingNFTId] = useState<string | null>(null);
   const [isMinting, setIsMinting] = useState(false);
+  const [nftTransactionCalls, setNftTransactionCalls] = useState<any[]>([]);
+
+  // Prepare NFT minting transaction calls for OnchainKit
+  const prepareNFTMinting = useCallback(async (ipfsHash: string, duration: number, roomId: string, transcription: string) => {
+    if (!address) return [];
+    
+    try {
+      const chainConfig = getCurrentChainConfig();
+      
+      const contractCall = {
+        to: chainConfig.contractAddress as `0x${string}`,
+        data: encodeFunctionData({
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'mintVoiceNFT',
+          args: [
+            address, // to
+            ipfsHash,
+            BigInt(duration),
+            roomId,
+            [], // whitelistedUsers - public recording
+            transcription
+          ]
+        })
+      };
+      
+      return [contractCall];
+    } catch (error) {
+      console.error('Error preparing NFT minting:', error);
+      return [];
+    }
+  }, [address]);
+
+  // Transaction success handler for OnchainKit
+  const handleNFTTransactionSuccess = useCallback(async (response: any) => {
+    console.log('✅ NFT Transaction successful:', response);
+    
+    setIsMinting(false);
+    
+    await notification({
+      title: "🎉 Voice NFT Minted!",
+      body: "Your voice recording has been minted as an NFT!"
+    });
+    
+    // Reload NFTs from blockchain with retry mechanism
+    let reloadSuccess = false;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        if (attempt > 0) {
+          console.log(`🔄 Retrying NFT reload (attempt ${attempt + 1}/3)...`);
+          await new Promise(resolve => setTimeout(resolve, 2000 * attempt));
+        }
+        
+        const nfts = await blockchainService.getVoiceNFTsByRoom(currentRoomId);
+        setVoiceNFTs(nfts);
+        
+        console.log('🔄 Reloaded NFTs after minting:', nfts.length, 'NFTs found');
+        reloadSuccess = true;
+        break;
+      } catch (reloadError) {
+        console.warn(`⚠️ NFT reload attempt ${attempt + 1} failed:`, reloadError);
+      }
+    }
+    
+    if (!reloadSuccess) {
+      console.warn('⚠️ Failed to reload NFTs after all attempts');
+    }
+    
+    // Clear transaction calls
+    setNftTransactionCalls([]);
+  }, [notification, currentRoomId]);
+
+  // Transaction error handler for OnchainKit
+  const handleNFTTransactionError = useCallback((error: any) => {
+    console.error('❌ NFT Transaction failed:', error);
+    setIsMinting(false);
+    
+    notification({
+      title: "❌ NFT Minting Failed",
+      body: error?.message || "Failed to mint NFT"
+    });
+    
+    // Clear transaction calls
+    setNftTransactionCalls([]);
+  }, [notification]);
+
   const recordingInterval = useRef<NodeJS.Timeout | null>(null);
   const recorder = useRef<RecordRTCInstance | null>(null);
   const stream = useRef<MediaStream | null>(null);
@@ -310,24 +407,20 @@ export function VoiceVideoHub() {
             console.warn('Warning: Blob size is very small, may not contain valid audio');
           }
 
-          // Step 1: Wallet Connection
+          // Step 1: Check Wallet (using MiniKit)
           await notification({
-            title: "🔗 Step 1/4: Connecting Wallet",
-            body: "Preparing blockchain connection..."
+            title: "🔗 Step 1/4: Checking Wallet",
+            body: "Using Farcaster wallet connection..."
           });
 
-          if (!isWalletConnected) {
-            const account = await blockchainService.connectWallet();
-            if (account) {
-              setIsWalletConnected(true);
-              await notification({
-                title: "✅ Wallet Connected",
-                body: "Proceeding to upload..."
-              });
-            } else {
-              throw new Error("Wallet connection failed - required for minting");
-            }
+          if (!address) {
+            throw new Error("Please connect your wallet in the app first");
           }
+          
+          await notification({
+            title: "✅ Wallet Ready",
+            body: "Proceeding to upload..."
+          });
           
           // Step 2: IPFS Upload
           await notification({
@@ -343,10 +436,10 @@ export function VoiceVideoHub() {
             name: `Voice Recording ${currentDate.toISOString()}`,
             description: `Voice recording from MetaWorkspace - ${formatDuration(recordingDuration)} duration`,
             roomId: currentRoomId,
-            creator: blockchainService.getAccount() || '',
+            creator: address || '',
             duration: recordingDuration,
             transcription: `Voice recording from ${currentDate.toLocaleString()}`,
-            participants: [blockchainService.getAccount() || 'unknown']
+            participants: [address || 'unknown']
           });
 
           console.log('✅ IPFS upload result:', {
@@ -378,77 +471,38 @@ export function VoiceVideoHub() {
           // Simulate AI processing time
           await new Promise(resolve => setTimeout(resolve, 2000));
           
-          // Step 4: Blockchain Minting
+          // Step 4: Prepare Blockchain Transaction
           await notification({
-            title: "⛓️ Step 4/4: Minting NFT",
-            body: "Creating your Voice NFT on Base blockchain..."
+            title: "⛓️ Step 4/4: Preparing NFT Transaction",
+            body: "Preparing Voice NFT minting transaction..."
           });
           
-          console.log('🔗 About to mint NFT with IPFS hash:', {
+          console.log('🔗 About to prepare NFT minting with IPFS hash:', {
             ipfsHash: ipfsResult.hash,
             duration: recordingDuration,
             roomId: currentRoomId,
             transcription: `Voice recording from ${new Date().toLocaleString()}`
           });
           
-          const result = await blockchainService.mintVoiceNFT(
+          const transcription = `Voice recording from ${new Date().toLocaleString()}`;
+          const transactionCalls = await prepareNFTMinting(
             ipfsResult.hash,
             recordingDuration,
             currentRoomId,
-            [], // Public recording
-            `Voice recording from ${new Date().toLocaleString()}` // Transcription
+            transcription
           );
           
-          console.log('⛓️ Minting result:', {
-            success: result.success,
-            hash: result.hash,
-            error: result.error
-          });
-
-          if (result.success) {
-            // Reload NFTs from blockchain with retry mechanism
-            let reloadSuccess = false;
-            for (let attempt = 0; attempt < 3; attempt++) {
-              try {
-                if (attempt > 0) {
-                  console.log(`🔄 Retrying NFT reload (attempt ${attempt + 1}/3)...`);
-                  await new Promise(resolve => setTimeout(resolve, 2000 * attempt)); // 0s, 2s, 4s delay
-                }
-                
-                const nfts = await blockchainService.getVoiceNFTsByRoom(currentRoomId);
-                setVoiceNFTs(nfts);
-                
-                console.log('🔄 Reloaded NFTs after minting:', nfts.length, 'NFTs found');
-                
-                // Verify the newly minted NFT contains correct IPFS hash
-                const newNFT = nfts.find(nft => nft.ipfsHash === ipfsResult.hash);
-                if (newNFT) {
-                  console.log('✅ NFT verification successful:', {
-                    tokenId: newNFT.tokenId,
-                    ipfsHash: newNFT.ipfsHash,
-                    duration: newNFT.duration,
-                    creator: newNFT.creator
-                  });
-                } else {
-                  console.warn('⚠️ Could not find newly minted NFT with matching IPFS hash yet - may need more time to propagate');
-                }
-                
-                reloadSuccess = true;
-                break;
-              } catch (reloadError) {
-                console.warn(`⚠️ NFT reload attempt ${attempt + 1} failed:`, reloadError);
-                if (attempt === 2) {
-                  console.error('❌ Failed to reload NFTs after all attempts. NFT was minted but may not appear immediately.');
-                }
-              }
-            }
+          if (transactionCalls.length > 0) {
+            console.log('✅ Transaction prepared successfully');
+            setNftTransactionCalls(transactionCalls);
+            setIsMinting(false); // Stop the minting animation, now showing transaction UI
             
             await notification({
-              title: "🎉 Voice NFT Minted Successfully!",
-              body: `Your voice is now immortalized on blockchain! Transaction: ${result.hash.slice(0, 10)}... IPFS: ${ipfsResult.hash.slice(0, 8)}...${reloadSuccess ? '' : ' (may take a moment to appear)'}`
+              title: "🚀 Transaction Ready!",
+              body: "Click the button below to mint your Voice NFT"
             });
           } else {
-            throw new Error(result.error || "Minting transaction failed");
+            throw new Error("Failed to prepare NFT minting transaction");
           }
         } catch (error) {
           console.error('Minting process failed:', error);
@@ -710,6 +764,37 @@ export function VoiceVideoHub() {
                   <div className="bg-blue-500 h-2 rounded-full animate-pulse" style={{ width: '70%' }}></div>
                 </div>
               </div>
+            </div>
+          )}
+
+          {/* Transaction UI for NFT Minting */}
+          {nftTransactionCalls.length > 0 && (
+            <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 p-4 rounded-lg border-2 border-green-500/30">
+              <div className="flex items-center justify-between mb-3">
+                <div>
+                  <div className="text-sm font-semibold text-green-600 dark:text-green-400">
+                    🚀 Ready to Mint NFT
+                  </div>
+                  <div className="text-xs text-green-500/80">
+                    Click to mint your voice recording as an NFT
+                  </div>
+                </div>
+              </div>
+              
+              <Transaction
+                calls={nftTransactionCalls}
+                onSuccess={handleNFTTransactionSuccess}
+                onError={handleNFTTransactionError}
+              >
+                <TransactionButton 
+                  text="🎤 Mint Voice NFT"
+                  className="w-full bg-gradient-to-r from-green-600 to-blue-600 hover:from-green-700 hover:to-blue-700"
+                />
+                <TransactionStatus>
+                  <TransactionStatusAction />
+                  <TransactionStatusLabel />
+                </TransactionStatus>
+              </Transaction>
             </div>
           )}
 

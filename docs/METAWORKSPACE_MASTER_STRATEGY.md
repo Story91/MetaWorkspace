@@ -50,7 +50,7 @@ Framer Motion (animations)
 
 // Web3 Integration  
 @coinbase/onchainkit (latest)
-@farcaster/frame-sdk
+@farcaster/miniapp-sdk
 wagmi + viem
 ```
 

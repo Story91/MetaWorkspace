@@ -56,12 +56,11 @@ export function VoiceVideoHub() {
   const [isWalletConnected, setIsWalletConnected] = useState(false);
   const ipfsService = useMemo(() => new IPFSStorageService(), []);
   
-  // Video Meeting State
-  const [isInVideoCall, setIsInVideoCall] = useState(false);
-  const [videoMeetings] = useState([
-    { id: 1, title: "Team Standup", participants: 5, status: "live", time: "Now" },
-    { id: 2, title: "Client Demo", participants: 3, status: "scheduled", time: "14:00" },
-    { id: 3, title: "Design Review", participants: 8, status: "upcoming", time: "Tomorrow" }
+  // Voice Rooms State (mockup)
+  const [voiceRooms] = useState([
+    { id: 1, name: "General Voice Chat", participants: 3, status: "active", isPrivate: false },
+    { id: 2, name: "Private Discussion", participants: 2, status: "active", isPrivate: true },
+    { id: 3, name: "AI Voice Training", participants: 0, status: "empty", isPrivate: false }
   ]);
   
   // Real Audio Recording
@@ -470,28 +469,27 @@ export function VoiceVideoHub() {
     }, 1500);
   }, [notification, recordingDuration, currentRoomId, recordedBlob, isWalletConnected, ipfsService]);
 
-  const handleJoinVideoCall = useCallback(async (meetingId: number) => {
-    const meeting = videoMeetings.find((m: { id: number; title: string; participants: number; status: string; time: string }) => m.id === meetingId);
-    setIsInVideoCall(true);
+  const handleJoinVoiceRoom = useCallback(async (roomId: number) => {
+    const room = voiceRooms.find((r) => r.id === roomId);
     
     await notification({
-      title: "📹 Joining Video Call",
-      body: `Connecting to ${meeting?.title}...`
+      title: "🎤 Joining Voice Room",
+      body: `Connecting to ${room?.name}...`
     });
 
     // Simulate connection
     setTimeout(async () => {
       await notification({
-        title: "🟢 Video Call Connected",
-        body: `You're now in ${meeting?.title} with ${meeting?.participants} participants`
+        title: "🟢 Voice Room Connected",
+        body: `You're now in ${room?.name} with ${room?.participants} others`
       });
-    }, 2000);
-  }, [videoMeetings, notification]);
+    }, 1500);
+  }, [voiceRooms, notification]);
 
-  const handleStartScreenShare = useCallback(async () => {
+  const handleStartVoiceTranslation = useCallback(async () => {
     await notification({
-      title: "🖥️ Screen Share Started",
-      body: "Your screen is now being shared with the team"
+      title: "🌍 Voice Translation Started",
+      body: "Real-time voice translation activated"
     });
   }, [notification]);
 
@@ -775,131 +773,113 @@ export function VoiceVideoHub() {
           </div>
         </div>
 
-        {/* Video Meetings Section */}
-        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
+        {/* Voice Rooms Section */}
+        <div className="bg-gradient-to-r from-orange-50 to-amber-50 dark:from-orange-900/20 dark:to-amber-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
           <div className="flex items-center space-x-2 mb-4">
-            <Icon name="star" className="text-blue-500" />
-            <span className="text-sm font-medium text-[var(--app-foreground)]">Video Meetings</span>
+            <Icon name="star" className="text-orange-500" />
+            <span className="text-sm font-medium text-[var(--app-foreground)]">Voice Rooms</span>
           </div>
 
           <div className="space-y-3">
-            {videoMeetings.map((meeting) => (
-              <div key={meeting.id} className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+            {voiceRooms.map((room) => (
+              <div key={room.id} className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
-                    <span className="text-sm font-medium text-[var(--app-foreground)]">{meeting.title}</span>
+                    <span className="text-sm font-medium text-[var(--app-foreground)]">{room.name}</span>
                     <span className={`text-xs px-2 py-1 rounded-full ${
-                      meeting.status === 'live' ? 'bg-red-100 text-red-600' :
-                      meeting.status === 'scheduled' ? 'bg-yellow-100 text-yellow-600' :
+                      room.status === 'active' ? 'bg-green-100 text-green-600' :
                       'bg-gray-100 text-gray-600'
                     }`}>
-                      {meeting.status === 'live' ? '🔴 Live' : 
-                       meeting.status === 'scheduled' ? '⏰ Soon' : '📅 Later'}
+                      {room.status === 'active' ? '🟢 Active' : '⚪ Empty'}
                     </span>
+                    {room.isPrivate && (
+                      <span className="text-xs px-2 py-1 rounded-full bg-purple-100 text-purple-600">
+                        🔒 Private
+                      </span>
+                    )}
                   </div>
                   <div className="text-xs text-[var(--app-foreground-muted)]">
-                    {meeting.participants} participants • {meeting.time}
+                    {room.participants} participants • {room.isPrivate ? 'Invite only' : 'Open to all'}
                   </div>
                 </div>
                 <div className="flex space-x-1">
-                  {meeting.status === 'live' && (
-                    <Button
-                      variant="primary"
-                      size="sm"
-                      onClick={() => handleJoinVideoCall(meeting.id)}
-                      icon={<Icon name="arrow-right" size="sm" />}
-                    >
-                      📹 Join
-                    </Button>
-                  )}
-                  {meeting.status === 'scheduled' && (
-                    <Button variant="outline" size="sm">
-                      🔔 Remind
-                    </Button>
-                  )}
+                  <Button
+                    variant={room.status === 'active' ? 'primary' : 'outline'}
+                    size="sm"
+                    onClick={() => handleJoinVoiceRoom(room.id)}
+                    icon={<Icon name="arrow-right" size="sm" />}
+                  >
+                    🎤 Join
+                    <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
+                  </Button>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
-        {/* Quick Actions */}
+        {/* Voice Quick Actions */}
         <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
           <div className="flex items-center space-x-2 mb-3">
             <Icon name="check" className="text-green-500" />
-            <span className="text-sm font-medium text-[var(--app-foreground)]">Quick Actions</span>
+            <span className="text-sm font-medium text-[var(--app-foreground)]">Voice Features</span>
           </div>
           
           <div className="grid grid-cols-2 gap-2">
             <Button
               variant="outline"
               size="sm"
-              onClick={handleStartScreenShare}
+              onClick={handleStartVoiceTranslation}
               icon={<Icon name="plus" size="sm" />}
             >
-              🖥️ Share Screen
+              🌍 Live Translation
+              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
             </Button>
             
             <Button
               variant="outline"
               size="sm"
               onClick={() => notification({
-                title: "📱 Instant Meeting",
-                body: "Creating new video room..."
+                title: "🎭 Voice AI Clone",
+                body: "Creating your AI voice clone..."
               })}
               icon={<Icon name="plus" size="sm" />}
             >
-              📹 Start Meeting
+              🎭 AI Voice Clone
+              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
             </Button>
             
             <Button
               variant="outline"
               size="sm"
               onClick={() => notification({
-                title: "📞 Voice Call",
-                body: "Calling team members..."
+                title: "🎵 Voice to Music",
+                body: "Converting voice to melody..."
               })}
               icon={<Icon name="plus" size="sm" />}
             >
-              📞 Voice Call
+              🎵 Voice to Music
+              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
             </Button>
             
             <Button
               variant="outline"
               size="sm"
               onClick={() => notification({
-                title: "🎥 Recording Started",
-                body: "Meeting will be auto-transcribed"
+                title: "🔊 Voice Enhancement",
+                body: "AI-powered voice quality boost activated"
               })}
               icon={<Icon name="plus" size="sm" />}
             >
-              🎥 Record
+              🔊 Voice Enhance
+              <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-1 rounded">Beta</span>
             </Button>
           </div>
         </div>
 
-        {/* Connection Status */}
-        {isInVideoCall && (
-          <div className="neu-card p-3 gradient-accent text-white text-center">
-            <div className="text-sm font-medium mb-1">📹 In Video Call</div>
-            <div className="text-xs opacity-90">Connected with 5 participants</div>
-            <div className="flex justify-center space-x-2 mt-2">
-              <button className="px-2 py-1 bg-white/20 rounded text-xs">🎤 Mute</button>
-              <button className="px-2 py-1 bg-white/20 rounded text-xs">📹 Video</button>
-              <button 
-                className="px-2 py-1 bg-red-500 rounded text-xs"
-                onClick={() => setIsInVideoCall(false)}
-              >
-                📞 Leave
-              </button>
-            </div>
-          </div>
-        )}
 
-        {/* AI Integration Status */}
-        <div className="text-xs text-center text-[var(--app-foreground-muted)] bg-[var(--app-accent-light)] p-2 rounded">
-          🤖 AI Features: Voice Transcription • Meeting Summaries • Auto Task Creation • Real-time Notes
-        </div>
+
+
       </div>
     </Card>
   );

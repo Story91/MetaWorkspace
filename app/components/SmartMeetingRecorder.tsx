@@ -32,6 +32,14 @@ export function SmartMeetingRecorder() {
   const { notification } = useMiniKitFeatures();
   
   const [isRecording, setIsRecording] = useState(false);
+  const [isInVideoCall, setIsInVideoCall] = useState(false);
+  
+  // Video Meetings State
+  const [videoMeetings] = useState([
+    { id: 1, title: "Team Standup", participants: 5, status: "live", time: "Now" },
+    { id: 2, title: "Client Demo", participants: 3, status: "scheduled", time: "14:00" },
+    { id: 3, title: "Design Review", participants: 8, status: "upcoming", time: "Tomorrow" }
+  ]);
   const [recordings, setRecordings] = useState<Array<{
     id: number;
     title: string;
@@ -172,6 +180,32 @@ export function SmartMeetingRecorder() {
     }
   }, [recordings, notification]);
 
+  // Video Meeting Handlers
+  const handleJoinVideoCall = useCallback(async (meetingId: number) => {
+    const meeting = videoMeetings.find((m: { id: number; title: string; participants: number; status: string; time: string }) => m.id === meetingId);
+    setIsInVideoCall(true);
+    
+    await notification({
+      title: "📹 Joining Video Call",
+      body: `Connecting to ${meeting?.title}...`
+    });
+
+    // Simulate connection
+    setTimeout(async () => {
+      await notification({
+        title: "🟢 Video Call Connected",
+        body: `You're now in ${meeting?.title} with ${meeting?.participants} participants`
+      });
+    }, 2000);
+  }, [videoMeetings, notification]);
+
+  const handleStartScreenShare = useCallback(async () => {
+    await notification({
+      title: "🖥️ Screen Share Started",
+      body: "Your screen is now being shared with the team"
+    });
+  }, [notification]);
+
   return (
     <Card title="🎤 Smart Meeting Recorder">
       <div className="space-y-5">
@@ -227,8 +261,133 @@ export function SmartMeetingRecorder() {
 
 
 
+        {/* Video Meetings Section */}
+        <div className="bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900/20 dark:to-cyan-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
+          <div className="flex items-center space-x-2 mb-4">
+            <Icon name="star" className="text-blue-500" />
+            <span className="text-sm font-medium text-[var(--app-foreground)]">Video Meetings</span>
+          </div>
+
+          <div className="space-y-3">
+            {videoMeetings.map((meeting) => (
+              <div key={meeting.id} className="flex items-center justify-between p-3 bg-white/50 dark:bg-gray-800/50 rounded-lg">
+                <div className="flex-1">
+                  <div className="flex items-center space-x-2 mb-1">
+                    <span className="text-sm font-medium text-[var(--app-foreground)]">{meeting.title}</span>
+                    <span className={`text-xs px-2 py-1 rounded-full ${
+                      meeting.status === 'live' ? 'bg-red-100 text-red-600' :
+                      meeting.status === 'scheduled' ? 'bg-yellow-100 text-yellow-600' :
+                      'bg-gray-100 text-gray-600'
+                    }`}>
+                      {meeting.status === 'live' ? '🔴 Live' : 
+                       meeting.status === 'scheduled' ? '⏰ Soon' : '📅 Later'}
+                    </span>
+                  </div>
+                  <div className="text-xs text-[var(--app-foreground-muted)]">
+                    {meeting.participants} participants • {meeting.time}
+                  </div>
+                </div>
+                <div className="flex space-x-1">
+                  {meeting.status === 'live' && (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => handleJoinVideoCall(meeting.id)}
+                      icon={<Icon name="arrow-right" size="sm" />}
+                    >
+                      📹 Join
+                    </Button>
+                  )}
+                  {meeting.status === 'scheduled' && (
+                    <Button variant="outline" size="sm">
+                      🔔 Remind
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Video Quick Actions */}
+        <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
+          <div className="flex items-center space-x-2 mb-3">
+            <Icon name="check" className="text-green-500" />
+            <span className="text-sm font-medium text-[var(--app-foreground)]">Video Quick Actions</span>
+          </div>
+          
+          <div className="grid grid-cols-2 gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleStartScreenShare}
+              icon={<Icon name="plus" size="sm" />}
+            >
+              🖥️ Share Screen
+              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => notification({
+                title: "📱 Instant Meeting",
+                body: "Creating new video room..."
+              })}
+              icon={<Icon name="plus" size="sm" />}
+            >
+              📹 Start Meeting
+              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => notification({
+                title: "📞 Voice Call",
+                body: "Calling team members..."
+              })}
+              icon={<Icon name="plus" size="sm" />}
+            >
+              📞 Voice Call
+              <span className="ml-1 text-xs bg-yellow-100 text-yellow-700 px-1 rounded">Soon</span>
+            </Button>
+            
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => notification({
+                title: "🎥 Video NFT Recording",
+                body: "Recording video for blockchain minting..."
+              })}
+              icon={<Icon name="plus" size="sm" />}
+            >
+              🎥 Record Video NFT
+              <span className="ml-1 text-xs bg-purple-100 text-purple-700 px-1 rounded">Beta</span>
+            </Button>
+          </div>
+        </div>
+
+        {/* Connection Status */}
+        {isInVideoCall && (
+          <div className="neu-card p-3 gradient-accent text-white text-center">
+            <div className="text-sm font-medium mb-1">📹 In Video Call</div>
+            <div className="text-xs opacity-90">Connected with 5 participants</div>
+            <div className="flex justify-center space-x-2 mt-2">
+              <button className="px-2 py-1 bg-white/20 rounded text-xs">🎤 Mute</button>
+              <button className="px-2 py-1 bg-white/20 rounded text-xs">📹 Video</button>
+              <button 
+                className="px-2 py-1 bg-red-500 rounded text-xs"
+                onClick={() => setIsInVideoCall(false)}
+              >
+                📞 Leave
+              </button>
+            </div>
+          </div>
+        )}
+
         {/* Recent Recordings */}
-        <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
+        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/20 dark:to-purple-900/20 p-4 rounded-xl border border-[var(--app-accent-light)]">
           <div className="flex items-center space-x-2 mb-4">
             <Icon name="star" className="text-blue-500" />
             <span className="text-sm font-medium text-[var(--app-foreground)]">Recent Recordings</span>

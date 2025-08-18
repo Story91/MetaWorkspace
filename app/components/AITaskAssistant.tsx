@@ -197,6 +197,11 @@ export function AITaskAssistant() {
   const [isCheckingAccess, setIsCheckingAccess] = useState(false); // Start as false
   const [isPurchasingAccess, setIsPurchasingAccess] = useState(false);
   const [aiAccessPrice, setAiAccessPrice] = useState<string>("0");
+  
+  // Promo Code State
+  const [promoCode, setPromoCode] = useState("");
+  const [isVerifyingPromo, setIsVerifyingPromo] = useState(false);
+  const [promoError, setPromoError] = useState("");
 
   // Prepare transaction calls for OnchainKit
   const prepareAIAccessPurchase = useCallback(async () => {
@@ -278,7 +283,7 @@ export function AITaskAssistant() {
     }
   }, []);
 
-  // Client-side mounting effect to load stored messages
+  // Client-side mounting effect to load stored messages and check promo code
   useEffect(() => {
     setIsClientMounted(true);
     try {
@@ -290,6 +295,12 @@ export function AITaskAssistant() {
           timestamp: new Date(msg.timestamp)
         }));
         setMessages(storedMessages);
+      }
+
+      // Check if promo code was already used
+      const promoUsed = localStorage.getItem('metaworkspace-promo-used');
+      if (promoUsed === 'BBQ9') {
+        setHasAIAccess(true);
       }
     } catch (error) {
       console.error('Failed to load stored messages:', error);
@@ -685,6 +696,44 @@ export function AITaskAssistant() {
     await handlePrepareTransaction();
   }, [handlePrepareTransaction]);
 
+  // Handle promo code verification
+  const handlePromoCodeVerify = useCallback(async () => {
+    if (!promoCode.trim()) {
+      setPromoError("Enter mystery code");
+      return;
+    }
+
+    if (promoCode.trim().toUpperCase() !== "BBQ9") {
+      setPromoError("Invalid mystery code");
+      return;
+    }
+
+    setIsVerifyingPromo(true);
+    setPromoError("");
+
+    try {
+      // Simulate verification delay
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Grant access locally - for demo purposes we'll just set state
+      setHasAIAccess(true);
+      
+      notification({
+        title: "🎉 Mystery Code Accepted!",
+        body: "Free AI Assistant access unlocked!"
+      });
+
+      // Store promo code usage in localStorage
+      localStorage.setItem('metaworkspace-promo-used', 'BBQ9');
+      
+    } catch (error) {
+      console.error('Error verifying promo code:', error);
+      setPromoError("Verification error");
+    } finally {
+      setIsVerifyingPromo(false);
+    }
+  }, [promoCode, notification]);
+
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -723,6 +772,60 @@ export function AITaskAssistant() {
             Get access to your personal AI assistant for task management, meeting planning, 
             and workspace optimization. Pay once and use forever!
           </p>
+
+          {/* Mystery Code Section */}
+          <div className="bg-gradient-to-r from-purple-50 to-indigo-50 dark:from-purple-900/20 dark:to-indigo-900/20 p-4 rounded-xl border border-purple-200 dark:border-purple-800 mb-4">
+            <div className="text-center mb-3">
+              <h4 className="text-sm font-semibold text-purple-700 dark:text-purple-300 mb-2">
+                🔮 Mystery Code
+              </h4>
+            </div>
+            
+            <div className="flex space-x-2 mb-2">
+              <input
+                type="text"
+                value={promoCode}
+                onChange={(e) => {
+                  setPromoCode(e.target.value);
+                  setPromoError("");
+                }}
+                placeholder="Enter mystery code..."
+                disabled={isVerifyingPromo}
+                className="flex-1 px-3 py-2 text-sm border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    handlePromoCodeVerify();
+                  }
+                }}
+              />
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handlePromoCodeVerify}
+                disabled={!promoCode.trim() || isVerifyingPromo}
+                className="border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                icon={isVerifyingPromo ? 
+                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> :
+                  <span>🔓</span>
+                }
+              >
+                {isVerifyingPromo ? 'Verifying...' : 'Unlock'}
+              </Button>
+            </div>
+            
+            {promoError && (
+              <div className="text-xs text-red-600 dark:text-red-400 mt-1 px-1">
+                ❌ {promoError}
+              </div>
+            )}
+          </div>
+
+          {/* Or Divider */}
+          <div className="flex items-center mb-4">
+            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+            <span className="px-3 text-xs text-gray-500 dark:text-gray-400 font-medium">OR</span>
+            <div className="flex-1 h-px bg-gray-300 dark:bg-gray-600"></div>
+          </div>
 
           <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 p-4 rounded-xl border border-green-200 dark:border-green-800 mb-6">
             <div className="text-2xl font-bold text-green-600 mb-1">

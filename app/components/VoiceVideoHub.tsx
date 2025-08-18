@@ -83,6 +83,11 @@ export function VoiceVideoHub() {
   const [playingNFTId, setPlayingNFTId] = useState<string | null>(null);
   const [isMinting, setIsMinting] = useState(false);
   const [nftTransactionCalls, setNftTransactionCalls] = useState<Array<{ to: `0x${string}`; data: `0x${string}` }>>([]);
+  
+  // Modal states for audio playback
+  const [showAudioModal, setShowAudioModal] = useState(false);
+  const [modalAudioSrc, setModalAudioSrc] = useState<string>("");
+  const [modalAudioTitle, setModalAudioTitle] = useState<string>("");
 
   // Utility function for formatting duration
   const formatDuration = useCallback((seconds: number) => {
@@ -557,21 +562,8 @@ export function VoiceVideoHub() {
 
   const handlePlayVoiceNFT = useCallback(async (nft: VoiceNFT) => {
     try {
-      if (playingNFTId === nft.tokenId) {
-        // Stop playing
-        if (audioElement.current) {
-          audioElement.current.pause();
-          audioElement.current.currentTime = 0;
-        }
-        setPlayingNFTId(null);
-        return;
-      }
-
-      // Stop any currently playing audio
-      if (audioElement.current) {
-        audioElement.current.pause();
-      }
-
+      // Open audio in modal instead of inline playback
+      setModalAudioTitle(`Voice NFT #${nft.tokenId}`);
       setPlayingNFTId(nft.tokenId);
       
       await notification({
@@ -579,7 +571,7 @@ export function VoiceVideoHub() {
         body: "Loading voice recording from IPFS..."
       });
 
-      console.log('Playing real IPFS audio:', {
+      console.log('Playing real IPFS audio in modal:', {
         tokenId: nft.tokenId,
         ipfsHash: nft.ipfsHash,
         duration: nft.duration
@@ -601,58 +593,46 @@ export function VoiceVideoHub() {
         try {
           console.log(`🔊 Trying to load audio from: ${gateway}`);
           
-          // Create new audio element for this attempt
-          const audio = new Audio();
-          audio.crossOrigin = 'anonymous'; // Handle CORS
-          audio.preload = 'metadata';
+          // Test if audio loads before showing modal
+          const testAudio = new Audio();
+          testAudio.crossOrigin = 'anonymous';
+          testAudio.preload = 'metadata';
           
-          // Set up promise for loading
           const loadPromise = new Promise<boolean>((resolve, reject) => {
             const timeout = setTimeout(() => {
               reject(new Error('Timeout loading audio'));
-            }, 10000); // 10 second timeout
+            }, 10000); // 10 second timeout for audio
             
-            audio.addEventListener('canplaythrough', () => {
+            testAudio.addEventListener('canplaythrough', () => {
               clearTimeout(timeout);
               resolve(true);
             }, { once: true });
             
-            audio.addEventListener('error', (e) => {
+            testAudio.addEventListener('error', (e) => {
               clearTimeout(timeout);
               console.warn(`Failed to load from ${gateway}:`, e);
               reject(new Error('Audio load error'));
             }, { once: true });
           });
           
-          audio.src = gateway;
-          
-          // Wait for audio to load
+          testAudio.src = gateway;
           await loadPromise;
           
-          // If we get here, audio loaded successfully
-          audioElement.current = audio;
+          // If audio loads successfully, set modal source and show modal
+          setModalAudioSrc(gateway);
+          setShowAudioModal(true);
           audioLoaded = true;
           
-          // Set up event listeners for playback
-          audioElement.current.addEventListener('ended', () => {
-            setPlayingNFTId(null);
-            notification({
-              title: "✅ Playback Complete",
-              body: `Voice NFT #${nft.tokenId} finished playing`
-            });
-          });
-          
           console.log(`✅ Successfully loaded audio from: ${gateway}`);
-          await audioElement.current.play();
           
           await notification({
-            title: "🎵 Playing Voice NFT",
-            body: `Playing ${formatDuration(nft.duration)} recording from IPFS`
+            title: "🎵 Audio Ready",
+            body: `Playing ${formatDuration(nft.duration)} audio in modal`
           });
           
         } catch (error) {
           console.warn(`Gateway ${gateway} failed:`, error);
-          continue; // Try next gateway
+          continue;
         }
       }
       
@@ -668,7 +648,19 @@ export function VoiceVideoHub() {
         body: "Unable to load audio from IPFS. The file might still be processing."
       });
     }
-  }, [playingNFTId, notification, formatDuration]);
+  }, [notification, formatDuration]);
+
+  const handleCloseAudioModal = useCallback(() => {
+    setShowAudioModal(false);
+    setModalAudioSrc("");
+    setModalAudioTitle("");
+    setPlayingNFTId(null);
+    // Stop any playing audio
+    if (audioElement.current) {
+      audioElement.current.pause();
+      audioElement.current.currentTime = 0;
+    }
+  }, []);
 
   const handleViewTransaction = useCallback((nft: VoiceNFT) => {
     // Use proper Basescan NFT format: /nft/CONTRACT_ADDRESS/TOKEN_ID
@@ -976,6 +968,86 @@ export function VoiceVideoHub() {
 
 
       </div>
+
+      {/* Audio Modal */}
+      {showAudioModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="relative w-full h-full max-w-2xl max-h-[80vh] m-4">
+            {/* Modal Header */}
+            <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/70 to-transparent p-4">
+              <div className="flex items-center justify-between text-white">
+                <h3 className="text-lg font-semibold">{modalAudioTitle}</h3>
+                <button
+                  onClick={handleCloseAudioModal}
+                  className="bg-black/50 hover:bg-black/70 rounded-full p-2 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Audio Player */}
+            <div className="w-full h-full flex items-center justify-center">
+              <div className="bg-gradient-to-br from-purple-600 to-pink-600 rounded-2xl p-8 shadow-2xl max-w-md w-full">
+                <div className="text-center mb-6">
+                  <div className="text-6xl mb-4">🎵</div>
+                  <h4 className="text-white text-xl font-semibold mb-2">{modalAudioTitle}</h4>
+                  <p className="text-white/80 text-sm">Voice Recording NFT</p>
+                </div>
+                
+                {modalAudioSrc && (
+                  <audio
+                    ref={audioElement}
+                    src={modalAudioSrc}
+                    controls
+                    autoPlay
+                    className="w-full"
+                    onEnded={() => {
+                      notification({
+                        title: "✅ Audio Finished",
+                        body: "Audio playback completed"
+                      });
+                    }}
+                    onError={(e) => {
+                      console.error('Audio playback error:', e);
+                      notification({
+                        title: "❌ Audio Error",
+                        body: "Failed to play audio"
+                      });
+                    }}
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/70 to-transparent p-4">
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={handleCloseAudioModal}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    if (playingNFTId) {
+                      // Find the current NFT being played
+                      const currentNFT = voiceNFTs.find(nft => nft.tokenId === playingNFTId);
+                      if (currentNFT) {
+                        handleViewTransaction(currentNFT);
+                      }
+                    }
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  🔗 View on Basescan
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

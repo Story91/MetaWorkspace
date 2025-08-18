@@ -514,7 +514,7 @@ export function RoomManager() {
                     <div className="flex items-center space-x-2 text-xs text-[var(--app-foreground-muted)]">
                       <span>Created: {new Date(room.createdAt).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' })}</span>
                       <span>• Creator: {room.creator.slice(0, 6)}...{room.creator.slice(-4)}</span>
-                      <span>• Members: {!room.isPublic ? room.farcasterWhitelist.length : '12'}</span>
+                      <span>Members: {!room.isPublic ? room.farcasterWhitelist.length : '12'}</span>
                     </div>
                     {!room.isPublic && (
                       <div className="mt-1">

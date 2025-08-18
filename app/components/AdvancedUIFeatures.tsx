@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useCallback } from "react";
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
@@ -29,95 +29,44 @@ function Card({
 }
 
 export function AdvancedUIFeatures() {
-  const { notification, shareURL } = useMiniKitFeatures();
+  const { notification } = useMiniKitFeatures();
   
-  // File Upload State
-  const [uploadProgress, setUploadProgress] = useState(0);
-  const [isUploading, setIsUploading] = useState(false);
-  
-  // Productivity Stats
-  const [productivityData] = useState({
+  // Mock data for display only
+  const productivityData = {
     todayTasks: 12,
     completedTasks: 8,
     focusTime: "4h 32m",
     teamCollabs: 6,
     aiSuggestions: 15,
     blockchainTxs: 3
-  });
+  };
 
-  // Team Activity Feed
-  const [activityFeed] = useState([
+  const activityFeed = [
     { id: 1, user: "alice.eth", action: "completed task", item: "UI Design Review", time: "5m ago", type: "task" },
     { id: 2, user: "bob.eth", action: "uploaded file", item: "project-specs.pdf", time: "12m ago", type: "file" },
     { id: 3, user: "carol.eth", action: "created meeting", item: "Design Sprint", time: "1h ago", type: "meeting" },
     { id: 4, user: "AI Assistant", action: "generated summary", item: "Weekly Progress", time: "2h ago", type: "ai" }
-  ]);
-
-  // Quick Tools
-  const [selectedTool, setSelectedTool] = useState<string | null>(null);
+  ];
 
   const handleFileUpload = useCallback(async () => {
-    setIsUploading(true);
-    setUploadProgress(0);
-    
     await notification({
-      title: "📁 File Upload Started",
-      body: "Uploading to IPFS decentralized storage..."
+      title: "🚧 Coming Soon",
+      body: "Advanced file upload features will be available soon!"
     });
-
-    // Simulate upload progress
-    const interval = setInterval(() => {
-      setUploadProgress(prev => {
-        if (prev >= 100) {
-          clearInterval(interval);
-          setIsUploading(false);
-          notification({
-            title: "✅ Upload Complete",
-            body: "File secured on blockchain with hash verification"
-          });
-          return 100;
-        }
-        return prev + 10;
-      });
-    }, 300);
   }, [notification]);
 
   const handleQuickShare = useCallback(async () => {
-    await shareURL({
-      url: window.location.href,
-      title: "🚀 Check out my MetaWorkspace AI productivity!",
-      text: `I completed ${productivityData.completedTasks} tasks today with AI assistance!`
-    });
-    
     await notification({
-      title: "📤 Productivity Shared!",
-      body: "Your achievement has been broadcast to the network"
+      title: "🚧 Coming Soon",
+      body: "Social sharing features will be available soon!"
     });
-  }, [shareURL, notification, productivityData]);
+  }, [notification]);
 
   const handleAIAssistRequest = useCallback(async (type: string) => {
-    setSelectedTool(type);
-    
-    const requests = {
-      'optimize': 'Analyzing your workflow for optimization opportunities...',
-      'summarize': 'Creating intelligent summary of your work progress...',
-      'translate': 'Translating content with context awareness...',
-      'analyze': 'Performing deep analysis of team productivity patterns...'
-    };
-
     await notification({
-      title: `🤖 AI ${type.charAt(0).toUpperCase() + type.slice(1)}`,
-      body: requests[type as keyof typeof requests] || 'Processing your request...'
+      title: "🚧 Coming Soon",
+      body: `AI ${type} features will be available soon!`
     });
-
-    // Simulate AI processing
-    setTimeout(async () => {
-      await notification({
-        title: "✨ AI Processing Complete",
-        body: `${type.charAt(0).toUpperCase() + type.slice(1)} results are ready in your dashboard`
-      });
-      setSelectedTool(null);
-    }, 3000);
   }, [notification]);
 
   const getActivityIcon = (type: string) => {
@@ -184,21 +133,7 @@ export function AdvancedUIFeatures() {
           </div>
 
           <div className="space-y-3">
-            {isUploading ? (
-              <div>
-                <div className="flex items-center justify-between text-xs text-[var(--app-foreground-muted)] mb-1">
-                  <span>Uploading to IPFS...</span>
-                  <span>{uploadProgress}%</span>
-                </div>
-                <div className="w-full bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-green-500 h-2 rounded-full transition-all duration-300" 
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
-                </div>
-              </div>
-            ) : (
-              <div className="grid grid-cols-2 gap-2">
+            <div className="grid grid-cols-2 gap-2">
                 <Button
                   variant="outline"
                   size="sm"
@@ -211,15 +146,14 @@ export function AdvancedUIFeatures() {
                   variant="outline"
                   size="sm"
                   onClick={() => notification({
-                    title: "🔗 IPFS Browser",
-                    body: "Opening decentralized file explorer..."
+                    title: "🚧 Coming Soon",
+                    body: "IPFS browser will be available soon!"
                   })}
                   icon={<Icon name="arrow-right" size="sm" />}
                 >
                   🌐 Browse IPFS
                 </Button>
               </div>
-            )}
 
             <div className="text-xs text-[var(--app-foreground-muted)] text-center">
               🔒 Files encrypted • 🌐 Globally accessible • ⛓️ Blockchain verified
@@ -243,16 +177,12 @@ export function AdvancedUIFeatures() {
             ].map((tool) => (
               <Button
                 key={tool.id}
-                variant={selectedTool === tool.id ? "primary" : "outline"}
+                variant="outline"
                 size="sm"
                 onClick={() => handleAIAssistRequest(tool.id)}
-                disabled={selectedTool === tool.id}
-                icon={selectedTool === tool.id ? 
-                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> :
-                  <span className="text-sm">{tool.icon}</span>
-                }
+                icon={<span className="text-sm">{tool.icon}</span>}
               >
-                {selectedTool === tool.id ? 'Processing...' : tool.label}
+                {tool.label}
               </Button>
             ))}
           </div>

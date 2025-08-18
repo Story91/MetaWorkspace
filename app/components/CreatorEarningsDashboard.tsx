@@ -39,7 +39,7 @@ interface RoomEarnings {
 export function CreatorEarningsDashboard() {
   const [earnings, setEarnings] = useState<RoomEarnings[]>([]);
   const [totalEarnings, setTotalEarnings] = useState("0");
-  const [isWithdrawing, setIsWithdrawing] = useState<string | null>(null);
+  // Removed isWithdrawing state as withdrawals are disabled
   const [isLoadingEarnings, setIsLoadingEarnings] = useState(true);
 
   // Load earnings data
@@ -90,54 +90,11 @@ export function CreatorEarningsDashboard() {
   }, []);
 
   const handleWithdraw = useCallback(async (roomId: string, roomName: string) => {
-    setIsWithdrawing(roomId);
-    
-    try {
-      // This will call blockchain service to withdraw earnings
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      // Update local state
-      setEarnings(prev => prev.map(room => 
-        room.roomId === roomId 
-          ? { ...room, earnings: "0" }
-          : room
-      ));
-      
-      // Recalculate total
-      const newTotal = earnings
-        .filter(room => room.roomId !== roomId)
-        .reduce((sum, room) => sum + parseFloat(room.earnings), 0)
-        .toFixed(4);
-      setTotalEarnings(newTotal);
-      
-      alert(`✅ Successfully withdrew earnings from ${roomName}!`);
-      
-    } catch (error) {
-      console.error('Withdrawal failed:', error);
-      alert(`❌ Failed to withdraw from ${roomName}. Please try again.`);
-    } finally {
-      setIsWithdrawing(null);
-    }
-  }, [earnings]);
+    alert(`🚧 Coming Soon: Withdrawal features for ${roomName} will be available soon!`);
+  }, []);
 
-  const handleUpdatePrice = useCallback(async (roomId: string, newPrice: string) => {
-    try {
-      // This will call blockchain service to update room price
-      console.log(`Updating price for room ${roomId} to ${newPrice} ETH`);
-      
-      // Update local state
-      setEarnings(prev => prev.map(room => 
-        room.roomId === roomId 
-          ? { ...room, joinPrice: newPrice }
-          : room
-      ));
-      
-      alert(`✅ Room join price updated to ${newPrice} ETH!`);
-      
-    } catch (error) {
-      console.error('Price update failed:', error);
-      alert('❌ Failed to update price. Please try again.');
-    }
+  const handleUpdatePrice = useCallback(async () => {
+    alert(`🚧 Coming Soon: Price update features will be available soon!`);
   }, []);
 
   if (isLoadingEarnings) {
@@ -230,12 +187,7 @@ export function CreatorEarningsDashboard() {
                     <Button
                       variant="outline"
                       size="sm"
-                      onClick={() => {
-                        const newPrice = prompt(`Current price: ${room.joinPrice} ETH\nEnter new join price:`, room.joinPrice);
-                        if (newPrice && newPrice !== room.joinPrice) {
-                          handleUpdatePrice(room.roomId, newPrice);
-                        }
-                      }}
+                      onClick={handleUpdatePrice}
                     >
                       💰 Update Price
                     </Button>
@@ -243,14 +195,11 @@ export function CreatorEarningsDashboard() {
                     <Button
                       variant="primary"
                       size="sm"
-                      disabled={parseFloat(room.earnings) === 0 || isWithdrawing === room.roomId}
+                      disabled={parseFloat(room.earnings) === 0}
                       onClick={() => handleWithdraw(room.roomId, room.roomName)}
-                      icon={isWithdrawing === room.roomId ? 
-                        <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> :
-                        <Icon name="star" size="sm" />
-                      }
+                      icon={<Icon name="star" size="sm" />}
                     >
-                      {isWithdrawing === room.roomId ? 'Withdrawing...' : 'Withdraw'}
+                      Withdraw
                     </Button>
                   </div>
                 </div>

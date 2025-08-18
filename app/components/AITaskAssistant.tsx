@@ -781,29 +781,40 @@ export function AITaskAssistant() {
               </h4>
             </div>
             
-            <div className="flex space-x-2 mb-2">
-              <input
-                type="text"
-                value={promoCode}
-                onChange={(e) => {
-                  setPromoCode(e.target.value);
-                  setPromoError("");
-                }}
-                placeholder="Enter mystery code..."
-                disabled={isVerifyingPromo}
-                className="flex-1 px-3 py-2 text-sm border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50"
-                onKeyPress={(e) => {
-                  if (e.key === 'Enter') {
-                    handlePromoCodeVerify();
-                  }
-                }}
-              />
+            <div className="flex space-x-3 mb-2 justify-center items-center">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={promoCode}
+                  onChange={(e) => {
+                    setPromoCode(e.target.value);
+                    setPromoError("");
+                  }}
+                  placeholder=""
+                  disabled={isVerifyingPromo}
+                  maxLength={4}
+                  className="w-24 px-2 py-2 text-sm text-center border border-purple-300 dark:border-purple-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-purple-500 disabled:opacity-50 uppercase tracking-widest font-mono"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      handlePromoCodeVerify();
+                    }
+                  }}
+                />
+                {/* Migające BBQ9 gdy pole jest puste */}
+                {!promoCode && (
+                  <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                    <span className="text-xs text-purple-300/50 dark:text-purple-400/30 font-mono tracking-widest animate-pulse">
+                      BBQ9
+                    </span>
+                  </div>
+                )}
+              </div>
               <Button
                 variant="outline"
                 size="sm"
                 onClick={handlePromoCodeVerify}
                 disabled={!promoCode.trim() || isVerifyingPromo}
-                className="border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20"
+                className="border-purple-500 text-purple-600 hover:bg-purple-50 dark:hover:bg-purple-900/20 ml-2"
                 icon={isVerifyingPromo ? 
                   <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> :
                   <span>🔓</span>

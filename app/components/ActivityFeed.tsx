@@ -243,7 +243,7 @@ export function ActivityFeed() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => window.open(`https://basescan.org/tx/${event.txHash}`, '_blank')}
+                    onClick={() => alert('🚧 Coming Soon: Transaction viewing will be available soon!')}
                     className="text-xs"
                   >
                     📋

@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
+import { useComposeCast } from '@coinbase/onchainkit/minikit';
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
 import { blockchainService, type VideoNFT } from "../services/blockchainService";
@@ -43,6 +44,7 @@ function Card({
 
 export function SmartMeetingRecorder() {
   const { notification } = useMiniKitFeatures();
+  const { composeCast } = useComposeCast();
   const { address } = useAccount();
   
   // const [isRecording, setIsRecording] = useState(false); // Unused
@@ -70,8 +72,9 @@ export function SmartMeetingRecorder() {
   const mediaRecorder = useRef<MediaRecorder | null>(null);
   const videoStream = useRef<MediaStream | null>(null);
   const recordingInterval = useRef<NodeJS.Timeout | null>(null);
-  const videoElement = useRef<HTMLVideoElement | null>(null);
+  // const videoElement = useRef<HTMLVideoElement | null>(null); // Unused - using modal instead
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const processVideoForMintingRef = useRef<((blob: Blob) => Promise<void>) | null>(null);
   
   // Utility function for formatting duration
   const formatDuration = useCallback((seconds: number) => {
@@ -235,6 +238,9 @@ export function SmartMeetingRecorder() {
     }
   }, [notification, recordingDuration, currentRoomId, address, ipfsService, formatDuration, prepareVideoNFTMinting]);
 
+  // Update ref when function changes
+  processVideoForMintingRef.current = processVideoForMinting;
+
   // Transaction success handler for OnchainKit
   const handleVideoNFTTransactionSuccess = useCallback(async (response: unknown) => {
     console.log('✅ Video NFT Transaction successful:', response);
@@ -245,6 +251,14 @@ export function SmartMeetingRecorder() {
       title: "🎉 Video NFT Minted!",
       body: "Your video recording has been minted as an NFT!"
     });
+
+    // Auto-suggest sharing after successful mint (viral moment!)
+    setTimeout(() => {
+      notification({
+        title: "📱 Share Your Achievement!",
+        body: "Tap the 📱 button to share your new video NFT on Farcaster"
+      });
+    }, 2000);
     
     // Reload NFTs from blockchain with retry mechanism
     let reloadSuccess = false;
@@ -428,8 +442,9 @@ export function SmartMeetingRecorder() {
       setIsRecordingVideo(true);
       setRecordingDuration(0);
       setRecordedVideoBlob(null);
-      
-      await notification({
+      setShowCameraPreview(true);
+    
+    await notification({
         title: "🎥 Video Recording Started",
         body: "Recording 15-second video for NFT minting..."
       });
@@ -439,7 +454,8 @@ export function SmartMeetingRecorder() {
         video: {
           width: { ideal: 1280 },
           height: { ideal: 720 },
-          frameRate: { ideal: 30 }
+          frameRate: { ideal: 30 },
+          facingMode: 'user' // Front camera on mobile
         },
         audio: {
           echoCancellation: true,
@@ -447,6 +463,12 @@ export function SmartMeetingRecorder() {
           sampleRate: 44100
         }
       });
+
+      // Set up preview video element
+      if (previewVideoRef.current && videoStream.current) {
+        previewVideoRef.current.srcObject = videoStream.current;
+        previewVideoRef.current.play();
+      }
 
       // Initialize MediaRecorder
       const options = {
@@ -479,7 +501,9 @@ export function SmartMeetingRecorder() {
         
         // Start processing immediately with the blob we just created
         setTimeout(() => {
-          processVideoForMinting(blob);
+          if (processVideoForMintingRef.current) {
+            processVideoForMintingRef.current(blob);
+          }
         }, 500); // Short delay to ensure state update
       };
 
@@ -489,9 +513,27 @@ export function SmartMeetingRecorder() {
       recordingInterval.current = setInterval(() => {
         setRecordingDuration(prev => {
           const newDuration = prev + 1;
-          // Auto-stop at 15 seconds
+          // Auto-stop at 15 seconds - using direct state update to avoid dependency
           if (newDuration >= 15) {
-            handleStopVideoRecording();
+            // Trigger stop recording without direct function call
+            setIsRecordingVideo(false);
+            setShowCameraPreview(false);
+            
+            // Clean up in next tick
+            setTimeout(() => {
+              if (recordingInterval.current) {
+                clearInterval(recordingInterval.current);
+              }
+              if (mediaRecorder.current && mediaRecorder.current.state !== 'inactive') {
+                mediaRecorder.current.stop();
+              }
+              if (previewVideoRef.current) {
+                previewVideoRef.current.srcObject = null;
+              }
+              if (videoStream.current) {
+                videoStream.current.getTracks().forEach(track => track.stop());
+              }
+            }, 0);
           }
           return newDuration;
         });
@@ -499,16 +541,18 @@ export function SmartMeetingRecorder() {
 
     } catch (error) {
       console.error('Failed to start video recording:', error);
-      await notification({
+    await notification({
         title: "❌ Video Recording Failed",
         body: "Please allow camera and microphone access to record videos"
       });
       setIsRecordingVideo(false);
+      setShowCameraPreview(false);
     }
   }, [notification]);
 
   const handleStopVideoRecording = useCallback(async () => {
     setIsRecordingVideo(false);
+    setShowCameraPreview(false);
     
     // Clean up timers
     if (recordingInterval.current) {
@@ -520,12 +564,17 @@ export function SmartMeetingRecorder() {
       mediaRecorder.current.stop();
     }
     
+    // Clean up preview video
+    if (previewVideoRef.current) {
+      previewVideoRef.current.srcObject = null;
+    }
+    
     // Clean up media stream
     if (videoStream.current) {
       videoStream.current.getTracks().forEach(track => track.stop());
     }
     
-    await notification({
+      await notification({
       title: "✅ Video Recording Complete",
       body: `${recordingDuration}s recorded • Starting minting process...`
     });
@@ -562,7 +611,7 @@ export function SmartMeetingRecorder() {
           }
 
           // Step 1: Check Wallet
-          await notification({
+    await notification({
             title: "🔗 Step 1/4: Checking Wallet",
             body: "Using Farcaster wallet connection..."
           });
@@ -775,6 +824,38 @@ export function SmartMeetingRecorder() {
     }
   }, [notification, formatDuration]);
 
+  const handleCloseVideoModal = useCallback(() => {
+    setShowVideoModal(false);
+    setModalVideoSrc("");
+    setModalVideoTitle("");
+    setPlayingNFTId(null);
+  }, []);
+
+  const handleShareVideoNFT = useCallback((nft: VideoNFT) => {
+    try {
+      const shareText = `🎥 Just minted my ${formatDuration(nft.duration)}s video as an NFT! Check out my creation on MetaWorkspace 🚀`;
+      
+      composeCast({
+        text: shareText,
+        embeds: [
+          window.location.href, // App URL for discovery
+          `https://basescan.org/nft/0x3e9747E50635bC453071504cf959CFbdD3F736e4/${nft.tokenId}` // NFT link
+        ]
+      });
+
+      notification({
+        title: "📱 Farcaster Cast Opened",
+        body: "Share your video NFT with the world!"
+      });
+    } catch (error) {
+      console.error('Failed to compose cast:', error);
+      notification({
+        title: "❌ Sharing Failed",
+        body: "Unable to open Farcaster composer"
+      });
+    }
+  }, [composeCast, formatDuration, notification]);
+
   const handleViewVideoTransaction = useCallback((nft: VideoNFT) => {
     const contractAddress = '0x3e9747E50635bC453071504cf959CFbdD3F736e4';
     const basescanUrl = `https://basescan.org/nft/${contractAddress}/${nft.tokenId}`;
@@ -940,7 +1021,7 @@ export function SmartMeetingRecorder() {
                 <div>
                   <div className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                     🎥 Minting Your Video NFT...
-                  </div>
+        </div>
                   <div className="text-xs text-blue-500/80">
                     Processing blockchain transaction • Please wait...
                   </div>
@@ -986,6 +1067,43 @@ export function SmartMeetingRecorder() {
                   <TransactionStatusLabel />
                 </TransactionStatus>
               </Transaction>
+            </div>
+          )}
+
+          {/* Camera Preview during recording */}
+          {showCameraPreview && (
+            <div className="mb-4">
+              <div className="text-xs font-medium text-[var(--app-foreground)] mb-2">
+                📹 Camera Preview
+              </div>
+              <div className="relative rounded-lg overflow-hidden border-2 border-blue-500 bg-black">
+                <video
+                  ref={previewVideoRef}
+                  autoPlay
+                  muted
+                  playsInline
+                  className="w-full h-48 object-cover rounded-lg"
+                  style={{ transform: 'scaleX(-1)' }} // Mirror effect like selfie camera
+                />
+                <div className="absolute top-2 right-2 bg-red-500 text-white text-xs px-2 py-1 rounded-full animate-pulse">
+                  🔴 REC {formatDuration(recordingDuration)}
+                </div>
+                <div className="absolute bottom-2 left-2 right-2">
+                  <div className="bg-black/50 backdrop-blur-sm rounded-lg p-2">
+                    <div className="flex justify-between items-center">
+                      <div className="text-white text-xs">
+                        Recording in progress...
+                      </div>
+                      <button
+                        onClick={handleStopVideoRecording}
+                        className="bg-red-500 hover:bg-red-600 text-white px-3 py-1 rounded-full text-xs font-medium transition-colors"
+                      >
+                        ⏹️ Stop
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
 
@@ -1201,8 +1319,8 @@ export function SmartMeetingRecorder() {
                       <span className="font-medium text-[var(--app-accent)]">Action Items:</span>
                       <div className="text-[var(--app-foreground-muted)] truncate">
                         • {recording.actionItems[0]} (soon)
-                      </div>
                     </div>
+                  </div>
                   </div>
                   <button
                     className="text-[10px] px-2 py-1 rounded-md bg-gray-200 text-gray-600 hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors ml-2 flex-shrink-0"
@@ -1218,6 +1336,78 @@ export function SmartMeetingRecorder() {
 
 
       </div>
+
+      {/* Video Modal */}
+      {showVideoModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm">
+          <div className="relative w-full h-full max-w-4xl max-h-[90vh] m-4">
+            {/* Modal Header */}
+            <div className="absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/70 to-transparent p-4">
+              <div className="flex items-center justify-between text-white">
+                <h3 className="text-lg font-semibold">{modalVideoTitle}</h3>
+                <button
+                  onClick={handleCloseVideoModal}
+                  className="bg-black/50 hover:bg-black/70 rounded-full p-2 transition-colors"
+                >
+                  ✕
+                </button>
+              </div>
+            </div>
+
+            {/* Video Player */}
+            <div className="w-full h-full flex items-center justify-center">
+              {modalVideoSrc && (
+                <video
+                  src={modalVideoSrc}
+                  controls
+                  autoPlay
+                  playsInline
+                  className="w-full h-full object-contain rounded-lg"
+                  onEnded={() => {
+                    notification({
+                      title: "✅ Video Finished",
+                      body: "Video playback completed"
+                    });
+                  }}
+                  onError={(e) => {
+                    console.error('Video playback error:', e);
+                    notification({
+                      title: "❌ Video Error",
+                      body: "Failed to play video"
+                    });
+                  }}
+                />
+              )}
+            </div>
+
+            {/* Modal Footer */}
+            <div className="absolute bottom-0 left-0 right-0 z-10 bg-gradient-to-t from-black/70 to-transparent p-4">
+              <div className="flex items-center justify-center space-x-3">
+                <button
+                  onClick={handleCloseVideoModal}
+                  className="bg-gray-600 hover:bg-gray-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  Close
+                </button>
+                <button
+                  onClick={() => {
+                    if (playingNFTId) {
+                      // Find the current NFT being played
+                      const currentNFT = videoNFTs.find(nft => nft.tokenId === playingNFTId);
+                      if (currentNFT) {
+                        handleShareVideoNFT(currentNFT);
+                      }
+                    }
+                  }}
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-lg transition-colors"
+                >
+                  📱 Share on Farcaster
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </Card>
   );
 }

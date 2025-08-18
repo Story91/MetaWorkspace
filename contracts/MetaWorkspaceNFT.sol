@@ -367,10 +367,10 @@ contract MetaWorkspaceNFT is ERC721, ERC721Enumerable, Ownable {
     }
 
     /**
-     * @dev Check if user has AI access (payment or NFT ownership)
+     * @dev Check if user has AI access (payment only)
      */
     function checkAIAccess(address user) external view returns (bool) {
-        return hasAIAccess[user] || balanceOf(user) > 0;
+        return hasAIAccess[user];
     }
 
 

@@ -1,23 +1,7 @@
 "use client";
 
-import { type ReactNode, useCallback, useMemo, useState, useEffect } from "react";
+import { type ReactNode, useState, useEffect } from "react";
 import { useAccount } from "wagmi";
-import {
-  Transaction,
-  TransactionButton,
-  TransactionToast,
-  TransactionToastAction,
-  TransactionToastIcon,
-  TransactionToastLabel,
-  TransactionError,
-  TransactionResponse,
-  TransactionStatusAction,
-  TransactionStatusLabel,
-  TransactionStatus,
-} from "@coinbase/onchainkit/transaction";
-import { useNotification } from "@coinbase/onchainkit/minikit";
-import { getCurrentChainConfig } from "../config/chains";
-import { METAWORKSPACE_NFT_ABI } from "../constants/contractABI";
 import AITaskAssistant from "./AITaskAssistant";
 
 type ButtonProps = {
@@ -121,7 +105,7 @@ type WorkspaceFeaturesProps = {
 export function WorkspaceFeatures({ setActiveTab }: WorkspaceFeaturesProps) {
   return (
     <div className="space-y-5 animate-fade-in">
-      <Card title="🚀 Complete MetaWorkspace Features">
+      <Card title="⚡ Advanced MetaWorkspace Features">
         <div className="space-y-5">
           <div className="neu-card p-5 gradient-accent text-white">
             <div className="flex items-center space-x-3 mb-3">
@@ -298,11 +282,87 @@ export function Icon({ name, size = "md", className = "" }: IconProps) {
 
 export function BlockchainWorkLogger() {
   const { address } = useAccount();
-  const [workHours, setWorkHours] = useState(0);
+  // const [workHours, setWorkHours] = useState(0); // Using sessionHours instead
   const [tasksCompleted, setTasksCompleted] = useState(0);
   const [nftProofs, setNftProofs] = useState(0);
+  // const [totalUsers, setTotalUsers] = useState(0); // Unused in display
+  const [hasAIAccess, setHasAIAccess] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [isVerified, setIsVerified] = useState(false);
+  // const [isVerified] = useState(false); // Unused
+  const [sessionStartTime, setSessionStartTime] = useState<Date | null>(null);
+  const [sessionHours, setSessionHours] = useState(0);
+
+  // Session time tracking
+  useEffect(() => {
+    if (address && !sessionStartTime) {
+      // Start session when wallet connects
+      const startTime = new Date();
+      setSessionStartTime(startTime);
+      
+      // Load previous TOTAL session time from localStorage
+      const savedTotalTime = localStorage.getItem(`total-session-time-${address}`);
+      if (savedTotalTime) {
+        setSessionHours(parseFloat(savedTotalTime));
+      }
+    }
+  }, [address, sessionStartTime]);
+
+  // Update session timer every 10 seconds for real-time display
+  useEffect(() => {
+    if (!sessionStartTime || !address) return;
+
+    const interval = setInterval(() => {
+      const now = new Date();
+      const currentSessionHours = (now.getTime() - sessionStartTime.getTime()) / (1000 * 60 * 60);
+      
+      // Get previous TOTAL time (not adding current session multiple times)
+      const savedTotalTime = localStorage.getItem(`total-session-time-${address}`);
+      const previousTotalHours = savedTotalTime ? parseFloat(savedTotalTime) : 0;
+      
+      // Display current session + previous total
+      const displayHours = previousTotalHours + currentSessionHours;
+      setSessionHours(displayHours);
+      
+    }, 10000); // Update every 10 seconds for real-time feel
+
+    return () => clearInterval(interval);
+  }, [sessionStartTime, address]);
+
+  // Save session when component unmounts or wallet disconnects
+  useEffect(() => {
+    return () => {
+      if (sessionStartTime && address) {
+        const now = new Date();
+        const currentSessionHours = (now.getTime() - sessionStartTime.getTime()) / (1000 * 60 * 60);
+        
+        // Add current session to total and save
+        const savedTotalTime = localStorage.getItem(`total-session-time-${address}`);
+        const previousTotalHours = savedTotalTime ? parseFloat(savedTotalTime) : 0;
+        const newTotalHours = previousTotalHours + currentSessionHours;
+        
+        localStorage.setItem(`total-session-time-${address}`, newTotalHours.toString());
+        saveSessionToDatabase(address, newTotalHours);
+      }
+    };
+  }, [sessionStartTime, address]);
+
+  const saveSessionToDatabase = async (walletAddress: string, hours: number) => {
+    try {
+      await fetch('/api/blockchain/work-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'updateSessionTime',
+          userAddress: walletAddress,
+          sessionHours: hours
+        })
+      });
+    } catch (error) {
+      console.error('Failed to save session time:', error);
+    }
+  };
+
+
 
   // Load real data from blockchain
   useEffect(() => {
@@ -315,30 +375,50 @@ export function BlockchainWorkLogger() {
       try {
         setIsLoading(true);
         
-        // Fetch real data from our contract and APIs
-        const [roomStats, userNFTs, workData] = await Promise.all([
-          fetch('/api/blockchain/rooms?room=metaworkspace-main').then(r => r.json()),
-          fetch(`/api/blockchain/nfts?roomId=metaworkspace-main&type=all`).then(r => r.json()),
-          fetch(`/api/blockchain/work-logs?user=${address}`).then(r => r.json())
-        ]);
+        // Fetch real data directly from contract
+        console.log(`📊 Loading blockchain data for ${address}`);
+        
+        const response = await fetch(`/api/blockchain/statistics?user=${address}`);
+        console.log(`🌐 API Response status: ${response.status}`);
+        
+        if (!response.ok) {
+          throw new Error(`API responded with status: ${response.status}`);
+        }
+        
+        const contractStats = await response.json();
+        console.log('📋 Contract stats received:', contractStats);
+        
+        if (contractStats.error) {
+          throw new Error(`Contract error: ${contractStats.error}`);
+        }
 
-        // Calculate real metrics
-        const realWorkHours = workData?.totalHours || Math.floor(Math.random() * 12) + 1;
-        const realTasks = workData?.completedTasks || Math.floor(Math.random() * 20) + 5;
-        const realNFTs = userNFTs?.totalCount || userNFTs?.nfts?.length || Math.floor(Math.random() * 50) + 10;
-
-        setWorkHours(realWorkHours);
-        setTasksCompleted(realTasks);
-        setNftProofs(realNFTs);
-        setIsVerified(roomStats?.verified || true);
+        // Use real contract data
+        const userNFTs = contractStats.userBalance || 0;
+        // const totalSupply = contractStats.totalSupply || 0; // Not used for display
+        const hasAIAccess = contractStats.userHasAIAccess || false;
+        
+        setNftProofs(userNFTs);
+        setHasAIAccess(hasAIAccess);
+        // setTotalUsers(totalSupply); // Not needed for display
+        
+        // Calculate realistic metrics from NFT count
+        const estimatedTasks = userNFTs; // Each NFT = completed task
+        
+        // setWorkHours(Math.round(estimatedHours * 10) / 10); // Using sessionHours instead
+        setTasksCompleted(estimatedTasks);
+        // isVerified is now read-only
+        
+        console.log(`✅ Loaded data: ${userNFTs} NFTs, AI Access: ${contractStats.userHasAIAccess}, Total Supply: ${contractStats.totalSupply}`);
 
       } catch (error) {
         console.error('Failed to load blockchain data:', error);
-        // Fallback to demo data
-        setWorkHours(8.5);
-        setTasksCompleted(12);
-        setNftProofs(47);
-        setIsVerified(true);
+        // Set to 0 when API fails - no mock data
+        // setWorkHours(0); // Not used anymore
+        setTasksCompleted(0);
+        setNftProofs(0);
+        // setTotalUsers(0); // Not used anymore
+        setHasAIAccess(false);
+        // isVerified is now read-only
       } finally {
         setIsLoading(false);
       }
@@ -347,58 +427,23 @@ export function BlockchainWorkLogger() {
     loadBlockchainData();
   }, [address]);
 
-  // Real NFT minting transaction - creates a simple achievement NFT
-  const calls = useMemo(() => {
-    const chainConfig = getCurrentChainConfig();
-    return address
-      ? [
-          {
-            to: chainConfig.contractAddress,
-            abi: METAWORKSPACE_NFT_ABI,
-            functionName: 'mintVoiceNFT',
-            args: [
-              address, // to address
-              `QmWorkLogProof${Date.now()}`, // ipfs hash (demo)
-              BigInt(60), // duration in seconds (1 minute work log)
-              'metaworkspace-main', // room id
-              [], // whitelisted users (empty = public)
-              `Work achievement verified at ${new Date().toISOString()}` // transcription/description
-            ],
-          },
-        ]
-      : [];
-  }, [address]);
+  // Remove transaction calls - this component only shows statistics
 
-  const sendNotification = useNotification();
-
-  const handleSuccess = useCallback(async (response: TransactionResponse) => {
-    const transactionHash = response.transactionReceipts[0].transactionHash;
-
-    console.log(`Professional milestone verified: ${transactionHash}`);
-
-    // Update local state after successful transaction
-    setNftProofs(prev => prev + 1);
-    setTasksCompleted(prev => prev + 1);
-    
-    await sendNotification({
-      title: "🏆 Professional Milestone Verified!",
-      body: `Your work achievement permanently recorded on Base blockchain. NFT proof created!`,
-    });
-  }, [sendNotification]);
+  // Remove notification handling - this component only shows statistics
 
   return (
-    <Card title="⛓️ Blockchain Workspace Logs">
+    <Card title="⛓️ Meta WorkBase Logs">
       <div className="space-y-5">
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
           <div className="neu-card p-4 text-center">
             {isLoading ? (
               <div className="text-2xl font-bold text-[var(--app-foreground-muted)]">...</div>
             ) : (
-              <div className="text-2xl font-bold gradient-accent bg-clip-text text-transparent">{workHours}h</div>
+              <div className="text-2xl font-bold gradient-accent bg-clip-text text-transparent">{Math.round(sessionHours * 10) / 10}h</div>
             )}
-            <div className="text-xs text-[var(--app-foreground-muted)] mt-1">Hours Logged</div>
+            <div className="text-xs text-[var(--app-foreground-muted)] mt-1">Session Time</div>
             <div className="w-full bg-[var(--app-accent-light)] rounded-full h-1 mt-2">
-              <div className="gradient-accent h-1 rounded-full" style={{width: `${Math.min((workHours / 12) * 100, 100)}%`}}></div>
+              <div className="gradient-accent h-1 rounded-full" style={{width: `${Math.min((sessionHours / 8) * 100, 100)}%`}}></div>
             </div>
           </div>
           <div className="neu-card p-4 text-center">
@@ -423,60 +468,21 @@ export function BlockchainWorkLogger() {
               <div className="gradient-mint h-1 rounded-full" style={{width: `${Math.min((nftProofs / 100) * 100, 100)}%`}}></div>
             </div>
           </div>
-        </div>
-        
-        <div className={`bg-gradient-to-r ${isVerified && address ? 'from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20' : 'from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20'} p-4 rounded-xl border border-[var(--app-accent-light)]`}>
-          <div className="flex items-center space-x-2 mb-2">
+          <div className="neu-card p-4 text-center">
             {isLoading ? (
-              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
-            ) : isVerified && address ? (
-              <Icon name="check" className="text-green-500" />
+              <div className="text-2xl font-bold text-[var(--app-foreground-muted)]">...</div>
             ) : (
-              <span className="text-yellow-500">⚠️</span>
+              <div className={`text-lg font-bold ${hasAIAccess ? 'text-green-500' : 'text-gray-400'}`}>
+                {hasAIAccess ? '✅' : '🔒'}
+              </div>
             )}
-            <span className="text-sm font-medium text-[var(--app-foreground)]">
-              Workspace Status: {isLoading ? 'Loading...' : isVerified && address ? 'Verified' : 'Connect Wallet'}
-            </span>
+            <div className="text-xs text-[var(--app-foreground-muted)] mt-1">AI Access</div>
+            <div className="w-full bg-[var(--app-accent-light)] rounded-full h-1 mt-3">
+              <div className={`h-1 rounded-full ${hasAIAccess ? 'bg-green-500' : 'bg-gray-300'}`} style={{width: hasAIAccess ? '100%' : '0%'}}></div>
+            </div>
           </div>
-          <p className="text-xs text-[var(--app-foreground-muted)]">
-            {address ? 
-              `Connected: ${address.slice(0, 6)}...${address.slice(-4)} • ${getCurrentChainConfig().name}` :
-              `Connect your wallet to start logging work on ${getCurrentChainConfig().name}`
-            }
-          </p>
         </div>
 
-        <div className="flex flex-col items-center">
-          {address ? (
-            <Transaction
-              calls={calls}
-              onSuccess={handleSuccess}
-              onError={(error: TransactionError) =>
-                console.error("Transaction failed:", error)
-              }
-            >
-              <TransactionButton className="text-white text-md" />
-              <TransactionStatus>
-                <TransactionStatusAction />
-                <TransactionStatusLabel />
-              </TransactionStatus>
-              <TransactionToast className="mb-4">
-                <TransactionToastIcon />
-                <TransactionToastLabel />
-                <TransactionToastAction />
-              </TransactionToast>
-            </Transaction>
-          ) : (
-            <div className="text-center p-4 bg-[var(--app-accent-light)] rounded-lg">
-              <p className="text-[var(--app-accent)] text-sm font-medium mb-2">
-                🔗 Connect Wallet to Start
-              </p>
-              <p className="text-[var(--app-foreground-muted)] text-xs">
-                Join 10,000+ professionals building verified career history on-chain
-              </p>
-            </div>
-          )}
-        </div>
       </div>
     </Card>
   );

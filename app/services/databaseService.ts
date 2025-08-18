@@ -25,6 +25,15 @@ export interface CachedRoom {
   last_synced: Date;
 }
 
+export interface AIAccessCache {
+  wallet_address: string;
+  has_access: boolean;
+  granted_at?: Date;
+  transaction_hash?: string;
+  cached_at: Date;
+  last_verified: Date;
+}
+
 export class DatabaseService {
   private sql!: ReturnType<typeof neon>;
   private isConnected: boolean = false;
@@ -84,6 +93,53 @@ export class DatabaseService {
         )
       `;
 
+      // Create AI access cache table
+      await this.sql`
+        CREATE TABLE IF NOT EXISTS ai_access_cache (
+          wallet_address VARCHAR PRIMARY KEY,
+          has_access BOOLEAN NOT NULL,
+          granted_at TIMESTAMP,
+          transaction_hash VARCHAR,
+          cached_at TIMESTAMP DEFAULT NOW(),
+          last_verified TIMESTAMP DEFAULT NOW()
+        )
+      `;
+
+      // Create user statistics table
+      await this.sql`
+        CREATE TABLE IF NOT EXISTS user_stats (
+          wallet_address VARCHAR PRIMARY KEY,
+          nft_count INTEGER DEFAULT 0,
+          hours_logged DECIMAL(10,2) DEFAULT 0,
+          tasks_completed INTEGER DEFAULT 0,
+          ai_access BOOLEAN DEFAULT false,
+          last_updated TIMESTAMP DEFAULT NOW()
+        )
+      `;
+
+      // Create global statistics table
+      await this.sql`
+        CREATE TABLE IF NOT EXISTS global_stats (
+          id INTEGER PRIMARY KEY DEFAULT 1,
+          total_nfts INTEGER DEFAULT 0,
+          total_users INTEGER DEFAULT 0,
+          total_hours DECIMAL(10,2) DEFAULT 0,
+          total_ai_users INTEGER DEFAULT 0,
+          last_updated TIMESTAMP DEFAULT NOW()
+        )
+      `;
+
+      // Create indexes for faster lookups
+      await this.sql`
+        CREATE INDEX IF NOT EXISTS idx_ai_access_wallet 
+        ON ai_access_cache(wallet_address);
+      `;
+      
+      await this.sql`
+        CREATE INDEX IF NOT EXISTS idx_user_stats_wallet 
+        ON user_stats(wallet_address);
+      `;
+
       console.log('Database tables initialized successfully');
     } catch (error) {
       console.error('Failed to initialize database tables:', error);
@@ -91,7 +147,7 @@ export class DatabaseService {
   }
 
   // AI Conversations
-  async saveConversation(userId: string, roomId: string, messages: unknown[], context?: unknown): Promise<string> {
+  async saveConversation(userId: string, roomId: string, messages: Record<string, unknown>[], context?: Record<string, unknown>): Promise<string> {
     if (!this.isConnected) {
       throw new Error('Database not connected');
     }
@@ -234,6 +290,197 @@ export class DatabaseService {
     }
   }
 
+  // AI Access Cache Management
+  async getAIAccessCache(walletAddress: string): Promise<AIAccessCache | null> {
+    if (!this.isConnected) return null;
+
+    try {
+      const result = await this.sql`
+        SELECT * FROM ai_access_cache 
+        WHERE wallet_address = ${walletAddress.toLowerCase()}
+      `;
+
+      if (!Array.isArray(result) || result.length === 0) return null;
+
+      const row = result[0] as Record<string, unknown>;
+      return {
+        wallet_address: row.wallet_address as string,
+        has_access: row.has_access as boolean,
+        granted_at: row.granted_at ? new Date(row.granted_at as string | number) : undefined,
+        transaction_hash: row.transaction_hash as string | undefined,
+        cached_at: new Date(row.cached_at as string | number),
+        last_verified: new Date(row.last_verified as string | number)
+      };
+    } catch (error) {
+      console.error('Failed to get AI access cache:', error);
+      return null;
+    }
+  }
+
+  async setAIAccessCache(
+    walletAddress: string, 
+    hasAccess: boolean, 
+    transactionHash?: string,
+    grantedAt?: Date
+  ): Promise<boolean> {
+    if (!this.isConnected) return false;
+
+    try {
+      await this.sql`
+        INSERT INTO ai_access_cache (
+          wallet_address, 
+          has_access, 
+          granted_at, 
+          transaction_hash,
+          cached_at,
+          last_verified
+        ) VALUES (
+          ${walletAddress.toLowerCase()}, 
+          ${hasAccess}, 
+          ${grantedAt || null}, 
+          ${transactionHash || null},
+          NOW(),
+          NOW()
+        )
+        ON CONFLICT (wallet_address) 
+        DO UPDATE SET 
+          has_access = ${hasAccess},
+          granted_at = COALESCE(${grantedAt || null}, ai_access_cache.granted_at),
+          transaction_hash = COALESCE(${transactionHash || null}, ai_access_cache.transaction_hash),
+          last_verified = NOW()
+      `;
+
+      // AI access cached silently
+      return true;
+    } catch (error) {
+      console.error('Failed to set AI access cache:', error);
+      return false;
+    }
+  }
+
+  async updateAIAccessVerification(walletAddress: string): Promise<boolean> {
+    if (!this.isConnected) return false;
+
+    try {
+      await this.sql`
+        UPDATE ai_access_cache 
+        SET last_verified = NOW()
+        WHERE wallet_address = ${walletAddress.toLowerCase()}
+      `;
+      return true;
+    } catch (error) {
+      console.error('Failed to update AI access verification:', error);
+      return false;
+    }
+  }
+
+  // User Statistics Management
+  async updateUserStats(
+    walletAddress: string,
+    nftCount: number,
+    hoursLogged: number,
+    tasksCompleted: number,
+    aiAccess: boolean
+  ): Promise<boolean> {
+    if (!this.isConnected) return false;
+
+    try {
+      await this.sql`
+        INSERT INTO user_stats (
+          wallet_address, 
+          nft_count, 
+          hours_logged, 
+          tasks_completed, 
+          ai_access,
+          last_updated
+        ) VALUES (
+          ${walletAddress.toLowerCase()}, 
+          ${nftCount}, 
+          ${hoursLogged}, 
+          ${tasksCompleted}, 
+          ${aiAccess},
+          NOW()
+        )
+        ON CONFLICT (wallet_address) 
+        DO UPDATE SET 
+          nft_count = ${nftCount},
+          hours_logged = ${hoursLogged},
+          tasks_completed = ${tasksCompleted},
+          ai_access = ${aiAccess},
+          last_updated = NOW()
+      `;
+
+      return true;
+    } catch (error) {
+      console.error('Failed to update user stats:', error);
+      return false;
+    }
+  }
+
+  async getUserStats(walletAddress: string): Promise<Record<string, unknown> | null> {
+    if (!this.isConnected) return null;
+
+    try {
+      const result = await this.sql`
+        SELECT * FROM user_stats 
+        WHERE wallet_address = ${walletAddress.toLowerCase()}
+      `;
+
+      if (!Array.isArray(result) || result.length === 0) return null;
+      return result[0] as Record<string, unknown>;
+    } catch (error) {
+      console.error('Failed to get user stats:', error);
+      return null;
+    }
+  }
+
+  async updateGlobalStats(
+    totalNfts: number,
+    totalUsers: number,
+    totalHours: number,
+    totalAiUsers: number
+  ): Promise<boolean> {
+    if (!this.isConnected) return false;
+
+    try {
+      await this.sql`
+        INSERT INTO global_stats (
+          id, total_nfts, total_users, total_hours, total_ai_users, last_updated
+        ) VALUES (
+          1, ${totalNfts}, ${totalUsers}, ${totalHours}, ${totalAiUsers}, NOW()
+        )
+        ON CONFLICT (id) 
+        DO UPDATE SET 
+          total_nfts = ${totalNfts},
+          total_users = ${totalUsers},
+          total_hours = ${totalHours},
+          total_ai_users = ${totalAiUsers},
+          last_updated = NOW()
+      `;
+
+      return true;
+    } catch (error) {
+      console.error('Failed to update global stats:', error);
+      return false;
+    }
+  }
+
+  async getGlobalStats(): Promise<Record<string, unknown> | null> {
+    if (!this.isConnected) return null;
+
+    try {
+      const result = await this.sql`
+        SELECT * FROM global_stats WHERE id = 1
+      `;
+
+      if (!Array.isArray(result) || result.length === 0) return null;
+      return result[0] as Record<string, unknown>;
+    } catch (error) {
+      console.error('Failed to get global stats:', error);
+      return null;
+    }
+  }
+
   // Cleanup old data
   async cleanupOldData(daysOld: number = 30): Promise<void> {
     if (!this.isConnected) return;
@@ -247,7 +494,13 @@ export class DatabaseService {
         WHERE created_at < ${cutoffDate.toISOString()}
       `;
 
-      console.log(`Cleaned up conversations older than ${daysOld} days`);
+      // Also cleanup old AI access cache (if user hasn't been verified in 7 days)
+      await this.sql`
+        DELETE FROM ai_access_cache 
+        WHERE last_verified < NOW() - INTERVAL '7 days'
+      `;
+
+      console.log(`Cleaned up data older than ${daysOld} days`);
     } catch (error) {
       console.error('Failed to cleanup old data:', error);
     }

@@ -4,6 +4,9 @@ import { useState, useCallback, useRef, useEffect } from "react";
 import useMiniKitFeatures from "../hooks/useMiniKitFeatures";
 import { Button } from "./DemoComponents";
 import { Icon } from "./DemoComponents";
+import { useAccount, useWriteContract, useWaitForTransactionReceipt } from "wagmi";
+import { METAWORKSPACE_NFT_ABI } from "../constants/contractABI";
+import { getCurrentChainConfig } from "../config/chains";
 
 interface ChatMessage {
   id: string;
@@ -178,12 +181,18 @@ function MessageContent({ content }: { content: string; isUser: boolean }) {
 
 export function AITaskAssistant() {
   const { notification, userProfile, fetchUserProfile, context } = useMiniKitFeatures();
+  const { address } = useAccount();
+  const { writeContract, data: hash, error: writeError } = useWriteContract();
+  const { isLoading: isConfirming, isSuccess: isConfirmed } = useWaitForTransactionReceipt({
+    hash,
+  });
   const [isClientMounted, setIsClientMounted] = useState(false);
   
   // AI Access Control
   const [hasAIAccess, setHasAIAccess] = useState<boolean | null>(null);
-  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(false); // Start as false
   const [isPurchasingAccess, setIsPurchasingAccess] = useState(false);
+  // const [aiAccessPrice] = useState<string>("0.0001"); // Unused
 
   const getDefaultMessages = (): ChatMessage[] => [
     {
@@ -240,58 +249,17 @@ export function AITaskAssistant() {
     }
   }, []);
 
-  // Check AI Access on mount
+  // Initialize client mount state and check access
   useEffect(() => {
-    const checkAIAccess = async () => {
-      try {
-        // This will call blockchain service to check AI access
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Mock: simulate user has access (set to true for demo)
-        setHasAIAccess(true);
-      } catch (error) {
-        console.error('Failed to check AI access:', error);
-        setHasAIAccess(false);
-      } finally {
-        setIsCheckingAccess(false);
-      }
-    };
-
-    if (isClientMounted) {
-      checkAIAccess();
+    setIsClientMounted(true);
+    // Initialize access check
+    if (!address) {
+      setHasAIAccess(false);
+      setIsCheckingAccess(false);
     }
-  }, [isClientMounted]);
+  }, [address]);
 
-  // Purchase AI Access function
-  const handlePurchaseAIAccess = useCallback(async () => {
-    setIsPurchasingAccess(true);
-    
-    try {
-      await notification({
-        title: "💳 Purchasing AI Access",
-        body: "Processing payment of 0.0001 ETH..."
-      });
 
-      // This will call blockchain service to purchase AI access
-      await new Promise(resolve => setTimeout(resolve, 3000));
-      
-      setHasAIAccess(true);
-      
-      await notification({
-        title: "🎉 AI Access Purchased!",
-        body: "You now have full access to the AI Assistant"
-      });
-      
-    } catch (error) {
-      console.error('Failed to purchase AI access:', error);
-      await notification({
-        title: "❌ Purchase Failed",
-        body: "Please check your wallet and try again"
-      });
-    } finally {
-      setIsPurchasingAccess(false);
-    }
-  }, [notification]);
 
   // Save messages to localStorage whenever messages change (only after client mount)
   useEffect(() => {
@@ -314,10 +282,269 @@ export function AITaskAssistant() {
     }
   }, [messages, scrollToBottom]);
 
+  // Check AI Access on component mount
+  const checkAIAccess = useCallback(async () => {
+    if (!address) {
+      console.log('🔒 No wallet connected - AI access locked');
+      setHasAIAccess(false);
+      setIsCheckingAccess(false);
+      return;
+    }
+
+    console.log(`🔍 Checking AI access for ${address.slice(0, 6)}...${address.slice(-4)}`);
+    setIsCheckingAccess(true);
+
+    try {
+      const response = await fetch('/api/blockchain/work-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'checkAIAccess',
+          userAddress: address
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const hasAccess = data.hasAccess;
+        
+        console.log(`${hasAccess ? '✅' : '❌'} AI Access check result: ${hasAccess ? 'ACTIVE' : 'LOCKED'}`);
+        
+        setHasAIAccess(hasAccess);
+        
+        // Notify user about their current status (only log, no toast to avoid spam)
+        if (hasAccess) {
+          console.log('🎉 User has AI access - full features available');
+        } else {
+          console.log('🔒 User needs to purchase AI access');
+        }
+      } else {
+        console.error(`❌ API call failed with status: ${response.status}`);
+        setHasAIAccess(false);
+      }
+    } catch (error) {
+      console.error('❌ Error checking AI access:', error);
+      setHasAIAccess(false);
+    } finally {
+      setIsCheckingAccess(false);
+    }
+  }, [address]);
+
+  // Purchase AI Access using blockchain transaction
+  const purchaseAIAccess = useCallback(async () => {
+    if (!address || isPurchasingAccess) return;
+
+    console.log(`💳 Starting AI access purchase for ${address.slice(0, 6)}...${address.slice(-4)}`);
+    setIsPurchasingAccess(true);
+    
+    try {
+      const chainConfig = getCurrentChainConfig();
+      console.log(`🔗 Using ${chainConfig.name} contract: ${chainConfig.contractAddress}`);
+      
+      notification({
+        title: "💳 Preparing Transaction",
+        body: "Getting AI access price from contract..."
+      });
+      
+      // Get the current AI access price from contract
+      const response = await fetch('/api/blockchain/work-logs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'purchaseAIAccess',
+          userAddress: address
+        })
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        const priceETH = (BigInt(data.value) / BigInt(10**18)).toString();
+        
+        console.log(`💰 AI Access price: ${data.value} wei (${priceETH} ETH)`);
+        
+        notification({
+          title: "🚀 Sending Transaction",
+          body: `Purchasing AI access for ${priceETH} ETH...`
+        });
+        
+        // Execute transaction using wagmi
+        writeContract({
+          address: chainConfig.contractAddress as `0x${string}`,
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'purchaseAIAccess',
+          args: [],
+          value: BigInt(data.value)
+        });
+        
+        console.log('📤 Transaction sent to wallet for signing');
+      } else {
+        console.error(`❌ Failed to get AI access price: ${response.status}`);
+        notification({
+          title: "❌ Transaction Failed",
+          body: "Failed to prepare transaction"
+        });
+        setIsPurchasingAccess(false);
+      }
+    } catch (error) {
+      console.error('❌ Error purchasing AI access:', error);
+      notification({
+        title: "❌ Purchase Failed",
+        body: error instanceof Error ? error.message : "Unknown error"
+      });
+      setIsPurchasingAccess(false);
+    }
+  }, [address, writeContract, notification, isPurchasingAccess]);
+
   // Fetch user profile on component mount
   useEffect(() => {
     fetchUserProfile();
   }, [fetchUserProfile]);
+
+  // Check AI access when address changes
+  useEffect(() => {
+    if (address) {
+      checkAIAccess();
+    } else {
+      setHasAIAccess(false);
+      setIsCheckingAccess(false);
+    }
+  }, [address, checkAIAccess]);
+
+  // Verify transaction using Basescan API
+  const verifyTransactionAndGrantAccess = useCallback(async (transactionHash: string) => {
+    if (!address) return;
+
+    try {
+      console.log(`🔍 Starting transaction verification for tx: ${transactionHash}`);
+      
+      notification({
+        title: "🔍 Verifying Transaction",
+        body: "Checking transaction confirmation on blockchain..."
+      });
+
+      // Poll for transaction verification with exponential backoff
+      let attempts = 0;
+      const maxAttempts = 8; // Reduced from 10
+      const baseDelay = 3000; // Increased to 3 seconds
+      const maxDelay = 30000; // Maximum 30 seconds between attempts
+
+      const pollVerification = async (): Promise<boolean> => {
+        attempts++;
+        console.log(`🔍 Verification attempt ${attempts}/${maxAttempts} for tx: ${transactionHash}`);
+        
+        try {
+          const response = await fetch('/api/blockchain/work-logs', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'verifyAIAccessTransaction',
+              userAddress: address,
+              transactionHash
+            })
+          });
+
+          if (!response.ok) {
+            console.error(`API call failed with status: ${response.status}`);
+            throw new Error(`API call failed: ${response.status}`);
+          }
+
+          const data = await response.json();
+          
+          if (data.verified && data.hasAccess) {
+            console.log('🎉 SUCCESS: Transaction verified and AI access granted!');
+            setHasAIAccess(true);
+            setIsPurchasingAccess(false);
+            
+            notification({
+              title: "🎉 AI Access Activated!",
+              body: "Transaction verified. You now have lifetime AI access!"
+            });
+            
+            console.log('✅ Refreshing AI access status from contract...');
+            checkAIAccess(); // Refresh state
+            return true;
+          } else if (attempts < maxAttempts) {
+            // Exponential backoff with max delay cap
+            const delay = Math.min(baseDelay * Math.pow(2, attempts - 1), maxDelay);
+            console.log(`❌ Transaction not confirmed yet, retrying in ${delay}ms (attempt ${attempts}/${maxAttempts})`);
+            
+            return new Promise(resolve => {
+              setTimeout(() => {
+                pollVerification().then(resolve).catch(resolve);
+              }, delay);
+            });
+          } else {
+            console.error(`❌ Transaction verification timeout after ${maxAttempts} attempts`);
+            throw new Error('Transaction verification timeout - please check Basescan manually');
+          }
+        } catch (apiError) {
+          console.error('API Error during verification:', apiError);
+          if (attempts < maxAttempts) {
+            const delay = Math.min(baseDelay * Math.pow(2, attempts - 1), maxDelay);
+            console.log(`🔄 API error, retrying in ${delay}ms...`);
+            
+            return new Promise(resolve => {
+              setTimeout(() => {
+                pollVerification().then(resolve).catch(resolve);
+              }, delay);
+            });
+          } else {
+            throw new Error('API calls failed - verification timeout');
+          }
+        }
+      };
+
+      await pollVerification();
+
+    } catch (error) {
+      console.error('Error verifying transaction:', error);
+      setIsPurchasingAccess(false);
+      
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      
+      notification({
+        title: "⚠️ Verification Failed", 
+        body: `${errorMessage}. Check your transaction hash on Basescan.`
+      });
+      
+      // Emergency: Check access directly from contract
+      console.log('🆘 Emergency access check...');
+      setTimeout(() => {
+        checkAIAccess();
+      }, 5000);
+    }
+  }, [address, notification, checkAIAccess]);
+
+  // Handle transaction confirmation - now verify with Basescan
+  useEffect(() => {
+    if (isConfirmed && hash) {
+      console.log(`✅ Transaction confirmed on blockchain: ${hash}`);
+      console.log('🔍 Starting Basescan verification process...');
+      
+      notification({
+        title: "✅ Transaction Confirmed",
+        body: "Now verifying with Basescan API..."
+      });
+      
+      // Don't immediately grant access - verify transaction first
+      verifyTransactionAndGrantAccess(hash);
+    }
+      }, [isConfirmed, hash, verifyTransactionAndGrantAccess, notification]);
+
+  // Handle transaction errors
+  useEffect(() => {
+    if (writeError) {
+      console.error('❌ Transaction failed:', writeError);
+      setIsPurchasingAccess(false);
+      
+      notification({
+        title: "❌ Transaction Failed",
+        body: `Error: ${writeError.message}`
+      });
+      
+      console.log('💡 User can try again or check wallet connection');
+    }
+  }, [writeError, notification]);
 
   const callRealAI = useCallback(async (userMessage: string): Promise<string> => {
     try {
@@ -357,6 +584,15 @@ export function AITaskAssistant() {
   const handleSendMessage = useCallback(async (message?: string) => {
     const messageToSend = message || inputValue.trim();
     if (!messageToSend || isProcessing || !isClientMounted) return;
+
+    // Check AI access before sending message
+    if (!hasAIAccess) {
+      notification({
+        title: "🚫 AI Access Required",
+        body: "Please purchase access to continue."
+      });
+      return;
+    }
 
     setIsProcessing(true);
     setInputValue('');
@@ -413,11 +649,15 @@ export function AITaskAssistant() {
     setTimeout(() => {
       inputRef.current?.focus();
     }, 100);
-  }, [inputValue, isProcessing, callRealAI, notification, isClientMounted, messages.length]);
+  }, [inputValue, isProcessing, hasAIAccess, callRealAI, notification, isClientMounted, messages.length]);
 
   const handleQuickAction = useCallback(async (action: string, text: string) => {
     await handleSendMessage(text);
   }, [handleSendMessage]);
+
+  const handlePurchaseAIAccess = useCallback(async () => {
+    await purchaseAIAccess();
+  }, [purchaseAIAccess]);
 
   const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -477,18 +717,18 @@ export function AITaskAssistant() {
             variant="primary"
             size="lg"
             onClick={handlePurchaseAIAccess}
-            disabled={isPurchasingAccess}
-            icon={isPurchasingAccess ? 
+            disabled={isPurchasingAccess || isConfirming}
+            icon={(isPurchasingAccess || isConfirming) ? 
               <div className="w-4 h-4 border border-current border-t-transparent rounded-full animate-spin"></div> :
               <span>💳</span>
             }
             className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
           >
-            {isPurchasingAccess ? 'Processing Payment...' : 'Purchase AI Access'}
+            {isConfirming ? 'Verifying Transaction...' : isPurchasingAccess ? 'Processing Payment...' : 'Buy AI Access'}
           </Button>
 
           <div className="text-xs text-[var(--app-foreground-muted)] mt-4">
-            💡 Or mint any NFT in MetaWorkspace to get free access!
+            💡 One-time payment • Lifetime access to AI assistant
           </div>
         </div>
       </Card>
@@ -498,6 +738,36 @@ export function AITaskAssistant() {
   return (
     <Card>
       <div className="space-y-3">
+        {/* AI Access Status Badge */}
+        {address && (
+          <div className="flex justify-between items-center p-2 bg-gradient-to-r from-gray-50 to-blue-50 dark:from-gray-800 dark:to-blue-900 rounded-lg border border-blue-200 dark:border-blue-700">
+            <div className="flex items-center space-x-2">
+              <span className="text-sm font-medium text-[var(--app-foreground)]">AI Access Status:</span>
+              {isCheckingAccess ? (
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div>
+                  <span className="text-xs text-[var(--app-foreground-muted)]">Checking...</span>
+                </div>
+              ) : hasAIAccess ? (
+                <div className="flex items-center space-x-1 px-2 py-1 bg-green-100 dark:bg-green-900 rounded-full">
+                  <span className="text-green-600 dark:text-green-400 text-xs">✅</span>
+                  <span className="text-green-700 dark:text-green-300 text-xs font-medium">Active</span>
+                </div>
+              ) : (
+                <div className="flex items-center space-x-1 px-2 py-1 bg-gray-100 dark:bg-gray-900 rounded-full">
+                  <span className="text-gray-600 dark:text-gray-400 text-xs">🔒</span>
+                  <span className="text-gray-700 dark:text-gray-300 text-xs font-medium">Locked</span>
+                </div>
+              )}
+            </div>
+            {hasAIAccess && (
+              <span className="text-xs text-green-600 dark:text-green-400 font-medium">
+                💎 Lifetime Access
+              </span>
+            )}
+          </div>
+        )}
+
         {/* Chat Messages */}
         <div className="h-80 max-h-80 overflow-y-auto bg-gradient-to-b from-green-900/20 to-transparent p-3 rounded-lg border border-green-500/30 font-mono text-xs">
           {messages.slice(-10).map((message) => (
@@ -534,9 +804,9 @@ export function AITaskAssistant() {
               key={action.id}
               variant="outline"
               size="sm"
-                          onClick={() => handleQuickAction(action.action, action.text)}
-            disabled={isProcessing || !isClientMounted}
-              className="text-left justify-start border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 py-1 px-2 h-8"
+              onClick={() => handleQuickAction(action.action, action.text)}
+              disabled={isProcessing || !isClientMounted || !hasAIAccess}
+              className="text-left justify-start border-green-500/30 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 py-1 px-2 h-8 disabled:opacity-50"
             >
               <span className="mr-1 text-xs">{action.icon}</span>
               <span className="text-[10px] font-mono">{action.text}</span>
@@ -552,15 +822,15 @@ export function AITaskAssistant() {
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyPress={handleKeyPress}
-            placeholder="Enter command for AI assistant..."
-            disabled={isProcessing || !isClientMounted}
-            className="flex-1 neu-input text-sm font-mono border-green-500/30 focus:border-green-500"
+            placeholder={hasAIAccess ? "Enter command for AI assistant..." : "AI Access required to chat"}
+            disabled={isProcessing || !isClientMounted || !hasAIAccess}
+            className="flex-1 neu-input text-sm font-mono border-green-500/30 focus:border-green-500 disabled:opacity-50"
           />
           <Button
             variant="primary"
             size="sm"
             onClick={() => handleSendMessage()}
-            disabled={!inputValue.trim() || isProcessing || !isClientMounted}
+            disabled={!inputValue.trim() || isProcessing || !isClientMounted || !hasAIAccess}
             className="bg-gradient-to-r from-green-600 to-cyan-600 hover:from-green-700 hover:to-cyan-700"
             icon={isProcessing ? 
               <div className="w-3 h-3 border border-current border-t-transparent rounded-full animate-spin"></div> :

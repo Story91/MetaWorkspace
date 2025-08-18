@@ -29,7 +29,7 @@ export function MetaWorkspaceDashboard({
       case "dashboard":
         return <WorkspaceOverview setActiveTab={setActiveTab} />;
       case "features":
-        return <WorkspaceFeatures setActiveTab={setActiveTab} />;
+        return <AdvancedUIFeatures />;
       case "social":
         return <SocialWorkspaceManager />;
       case "collaboration":
@@ -39,13 +39,15 @@ export function MetaWorkspaceDashboard({
       case "voice":
         return <VoiceVideoHub />;
       case "advanced":
-        return <AdvancedUIFeatures />;
+        return <WorkspaceFeatures setActiveTab={setActiveTab} />;
       case "rooms":
         return <RoomManager />;
       case "earnings":
         return <CreatorEarningsDashboard />;
       case "activity":
         return <ActivityFeed />;
+      case "features":
+        return <WorkspaceFeatures setActiveTab={setActiveTab} />;
       case "about":
         return <AboutGuide />;
       default:

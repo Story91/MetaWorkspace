@@ -7,6 +7,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createPublicClient, http, type Address } from 'viem';
 import { METAWORKSPACE_NFT_ABI } from '../../../constants/contractABI';
 import { getCurrentChainConfig } from '../../../config/chains';
+import { basescanService } from '../../../services/basescanService';
+import { databaseService } from '../../../services/databaseService';
 
 interface WorkLog {
   totalHours: number;
@@ -92,5 +94,201 @@ export async function GET(request: NextRequest): Promise<NextResponse> {
     };
 
     return NextResponse.json(fallbackData);
+  }
+}
+
+export async function POST(request: NextRequest): Promise<NextResponse> {
+  try {
+    const body = await request.json();
+    const { action, userAddress } = body;
+
+    if (!userAddress) {
+      return NextResponse.json(
+        { error: 'User address is required' },
+        { status: 400 }
+      );
+    }
+
+    const chainConfig = getCurrentChainConfig();
+    const publicClient = createPublicClient({
+      chain: chainConfig.chain,
+      transport: http(chainConfig.rpcUrl)
+    });
+
+    if (action === 'checkAIAccess') {
+      try {
+        // First check database cache
+        const cachedAccess = await databaseService.getAIAccessCache(userAddress);
+        
+        if (cachedAccess) {
+          const cacheAge = Date.now() - cachedAccess.last_verified.getTime();
+          const cacheMaxAge = 6 * 60 * 60 * 1000; // 6 hours
+          
+          if (cacheAge < cacheMaxAge) {
+            // Update verification timestamp
+            await databaseService.updateAIAccessVerification(userAddress);
+            
+            return NextResponse.json({ 
+              hasAccess: cachedAccess.has_access
+            });
+          }
+        }
+
+        // Check contract for current status
+        const hasAccess = await publicClient.readContract({
+          address: chainConfig.contractAddress,
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'checkAIAccess',
+          args: [userAddress as Address]
+        }) as boolean;
+
+        // Cache the result
+        await databaseService.setAIAccessCache(
+          userAddress,
+          hasAccess,
+          undefined, // No transaction hash for simple check
+          hasAccess ? new Date() : undefined
+        );
+
+        return NextResponse.json({ 
+          hasAccess
+        });
+      } catch (error) {
+        console.error('Error checking AI access:', error);
+        return NextResponse.json({ hasAccess: false, error: 'Check failed' });
+      }
+    }
+
+    if (action === 'updateSessionTime') {
+      try {
+        const { sessionHours } = await request.json();
+        
+        // Update user session time in database
+        await databaseService.updateUserStats(
+          userAddress,
+          0, // NFT count will be updated separately
+          sessionHours,
+          0, // Tasks will be updated separately 
+          false // AI access will be updated separately
+        );
+
+        return NextResponse.json({ 
+          success: true,
+          message: 'Session time updated'
+        });
+      } catch (error) {
+        console.error('Error updating session time:', error);
+        return NextResponse.json({ error: 'Failed to update session time' });
+      }
+    }
+
+    if (action === 'purchaseAIAccess') {
+      try {
+        // Get AI access price from contract
+        const priceWei = await publicClient.readContract({
+          address: chainConfig.contractAddress,
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'aiAccessPrice',
+          args: []
+        }) as bigint;
+
+        // Return transaction data for frontend to execute
+        return NextResponse.json({
+          success: true,
+          contractAddress: chainConfig.contractAddress,
+          functionName: 'purchaseAIAccess',
+          args: [],
+          value: priceWei.toString(),
+          abi: METAWORKSPACE_NFT_ABI
+        });
+      } catch (error) {
+        console.error('Error preparing AI access purchase:', error);
+        return NextResponse.json(
+          { error: 'Failed to prepare purchase transaction' },
+          { status: 500 }
+        );
+      }
+    }
+
+    if (action === 'verifyAIAccessTransaction') {
+      const { transactionHash } = body;
+      
+      if (!transactionHash) {
+        return NextResponse.json(
+          { error: 'Transaction hash is required' },
+          { status: 400 }
+        );
+      }
+
+      try {
+        // Verify transaction using Basescan API
+        const isConfirmed = await basescanService.isTransactionConfirmed(transactionHash, 1);
+        
+        if (!isConfirmed) {
+          return NextResponse.json({ 
+            verified: false, 
+            message: 'Transaction not confirmed yet' 
+          });
+        }
+
+        // Verify it's an AI access purchase transaction
+        const isAIAccess = await basescanService.isAIAccessPurchase(
+          transactionHash,
+          chainConfig.contractAddress,
+          userAddress as Address
+        );
+
+        if (!isAIAccess) {
+          return NextResponse.json({ 
+            verified: false, 
+            message: 'Transaction is not a valid AI access purchase' 
+          });
+        }
+
+        // Double-check with contract state
+        const hasAccess = await publicClient.readContract({
+          address: chainConfig.contractAddress,
+          abi: METAWORKSPACE_NFT_ABI,
+          functionName: 'checkAIAccess',
+          args: [userAddress as Address]
+        }) as boolean;
+
+        if (hasAccess) {
+          // Cache the successful verification with transaction hash
+          await databaseService.setAIAccessCache(
+            userAddress,
+            true,
+            transactionHash,
+            new Date()
+          );
+        }
+
+        return NextResponse.json({ 
+          verified: true, 
+          hasAccess,
+          transactionHash,
+          message: 'AI access verified successfully'
+        });
+
+      } catch (error) {
+        console.error('Error verifying AI access transaction:', error);
+        return NextResponse.json(
+          { error: 'Failed to verify transaction' },
+          { status: 500 }
+        );
+      }
+    }
+
+    return NextResponse.json(
+      { error: 'Invalid action' },
+      { status: 400 }
+    );
+
+  } catch (error) {
+    console.error('Error in POST work-logs:', error);
+    return NextResponse.json(
+      { error: 'Internal server error' },
+      { status: 500 }
+    );
   }
 }
